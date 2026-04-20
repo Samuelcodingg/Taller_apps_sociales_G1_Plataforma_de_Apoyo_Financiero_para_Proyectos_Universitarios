@@ -47,7 +47,7 @@ const Explorar = () => {
           <Select value={uni} onValueChange={setUni}>
             <SelectTrigger><SelectValue placeholder="Universidad" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas las universidades</SelectItem>
+              <SelectItem value="all">Todas las facultades</SelectItem>
               {universities.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
             </SelectContent>
           </Select>
