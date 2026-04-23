@@ -1,4 +1,5 @@
-service: backend_api
+service: backend-api
+frameworkVersion: ~4.34.0
 
 provider: 
   name: aws
