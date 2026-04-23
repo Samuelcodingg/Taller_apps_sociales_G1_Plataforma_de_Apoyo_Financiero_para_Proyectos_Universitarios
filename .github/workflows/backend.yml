@@ -164,7 +164,7 @@ jobs:
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL_QAS }}
-        run: npx serverless deploy --stage "${{ vars.STAGE_QAS || env.STAGE_QAS }}" --region "${{ vars.AWS_REGION || env.AWS_REGION }}"
+        run: npx serverless deploy --config serverless.deploy.yml --stage "${{ vars.STAGE_QAS || env.STAGE_QAS }}" --region "${{ vars.AWS_REGION || env.AWS_REGION }}"
 
       - name: Deploy with Serverless
         if: needs.resolve-deploy-env.outputs.target_env == 'prd'
@@ -172,4 +172,4 @@ jobs:
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL_PRD }}
-        run: npx serverless deploy --stage "${{ vars.STAGE_PRD || env.STAGE_PRD }}" --region "${{ vars.AWS_REGION || env.AWS_REGION }}"
+        run: npx serverless deploy --config serverless.deploy.yml --stage "${{ vars.STAGE_PRD || env.STAGE_PRD }}" --region "${{ vars.AWS_REGION || env.AWS_REGION }}"

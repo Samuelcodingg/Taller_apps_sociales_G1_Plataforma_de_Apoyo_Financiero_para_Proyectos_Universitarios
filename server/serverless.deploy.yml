@@ -1,0 +1,33 @@
+service: backend-api
+frameworkVersion: ~4.34.0
+
+package:
+  individually: true
+  patterns:
+    - dist/**
+    - node_modules/**
+    - package.json
+    - package-lock.json
+    - prisma/**
+    - '!src/**'
+    - '!node_modules/**/test/**'
+    - '!node_modules/**/*.md'
+    - '!node_modules/typescript/**'
+    - '!node_modules/ts-node-dev/**'
+    - '!node_modules/jest/**'
+    - '!node_modules/ts-jest/**'
+    - '!node_modules/@types/**'
+    - '!node_modules/prisma/**'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-2
+  environment:
+    DATABASE_URL: ${env:DATABASE_URL}
+
+functions:
+  api:
+    handler: dist/lambda.handler
+    events:
+      - httpApi: '*'
