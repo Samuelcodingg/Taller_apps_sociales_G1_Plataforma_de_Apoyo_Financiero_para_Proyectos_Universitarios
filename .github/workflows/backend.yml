@@ -154,6 +154,10 @@ jobs:
         working-directory: ${{ needs.backend-ci.outputs.backend_dir }}
         run: npm run build
 
+      - name: Prune dev dependencies
+        working-directory: ${{ needs.backend-ci.outputs.backend_dir }}
+        run: npm prune --omit=dev
+
       - name: Deploy with Serverless
         if: needs.resolve-deploy-env.outputs.target_env == 'qas'
         working-directory: ${{ needs.backend-ci.outputs.backend_dir }}
