@@ -1,4 +1,5 @@
 import { Account as PrismaAccount, PrismaClient, Role as PrismaRole } from '@prisma/client';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { IAuthRepository, StoreRefreshTokenInput } from '../domain/IAuthRepository';
 import { CreateLocalUserInput, CreateOAuthUserInput, User } from '../domain/User';
@@ -7,7 +8,18 @@ export class AuthRepository implements IAuthRepository {
 	private readonly prisma: PrismaClient;
 
 	constructor(prismaClient?: PrismaClient) {
-		this.prisma = prismaClient ?? new PrismaClient();
+		if (prismaClient) {
+			this.prisma = prismaClient;
+			return;
+		}
+
+		const databaseUrl = process.env.DATABASE_URL;
+		if (!databaseUrl) {
+			throw new Error('DATABASE_URL no esta configurada para inicializar PrismaClient.');
+		}
+
+		const adapter = new PrismaMariaDb(databaseUrl);
+		this.prisma = new PrismaClient({ adapter });
 	}
 
 	async findByEmail(email: string): Promise<User | null> {
