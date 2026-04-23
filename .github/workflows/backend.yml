@@ -158,6 +158,15 @@ jobs:
         working-directory: ${{ needs.backend-ci.outputs.backend_dir }}
         run: npm prune --omit=dev
 
+      - name: Keep only Lambda Prisma engine
+        working-directory: ${{ needs.backend-ci.outputs.backend_dir }}
+        shell: bash
+        run: |
+          if [ -d node_modules/.prisma/client ]; then
+            find node_modules/.prisma/client -type f -name 'libquery_engine-*' ! -name 'libquery_engine-rhel-openssl-3.0.x.so.node' -delete
+          fi
+          rm -rf node_modules/@prisma/engines || true
+
       - name: Deploy with Serverless
         if: needs.resolve-deploy-env.outputs.target_env == 'qas'
         working-directory: ${{ needs.backend-ci.outputs.backend_dir }}
