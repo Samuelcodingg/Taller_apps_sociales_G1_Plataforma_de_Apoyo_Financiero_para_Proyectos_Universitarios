@@ -158,6 +158,7 @@ jobs:
         if: needs.resolve-deploy-env.outputs.target_env == 'qas'
         working-directory: ${{ needs.backend-ci.outputs.backend_dir }}
         env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL_QAS }}
         run: npx serverless deploy --stage "${{ vars.STAGE_QAS || env.STAGE_QAS }}" --region "${{ vars.AWS_REGION || env.AWS_REGION }}"
 
@@ -165,5 +166,6 @@ jobs:
         if: needs.resolve-deploy-env.outputs.target_env == 'prd'
         working-directory: ${{ needs.backend-ci.outputs.backend_dir }}
         env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL_PRD }}
         run: npx serverless deploy --stage "${{ vars.STAGE_PRD || env.STAGE_PRD }}" --region "${{ vars.AWS_REGION || env.AWS_REGION }}"
