@@ -1,4 +1,4 @@
-import { Account as PrismaAccount, PrismaClient, Role as PrismaRole } from '.prisma/client';
+import { Account as PrismaAccount, PrismaClient, Role as PrismaRole } from '@prisma/client';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { IAuthRepository, StoreRefreshTokenInput } from '../domain/IAuthRepository';
 import { CreateLocalUserInput, CreateOAuthUserInput, User } from '../domain/User';
