@@ -1,8 +1,33 @@
-import { Account as PrismaAccount, PrismaClient, Role as PrismaRole } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { IAuthRepository, StoreRefreshTokenInput } from '../domain/IAuthRepository';
 import { CreateLocalUserInput, CreateOAuthUserInput, User } from '../domain/User';
+import { Role } from '../domain/Role';
+
+const ACCOUNT_ROLES_INCLUDE = {
+	accountRoles: {
+		include: { role: true },
+		orderBy: { createdAt: 'asc' as const },
+	},
+};
+
+interface AccountWithRolesRow {
+	id: string;
+	email: string;
+	password: string;
+	provider: string;
+	createdAt: Date;
+	accountRoles: Array<{
+		role: {
+			name: string;
+		};
+	}>;
+}
+
+interface RoleRow {
+	id: string;
+}
 
 export class AuthRepository implements IAuthRepository {
 	private readonly prisma: PrismaClient;
@@ -22,48 +47,72 @@ export class AuthRepository implements IAuthRepository {
 		this.prisma = new PrismaClient({ adapter });
 	}
 
+	private get accountQuery() {
+		return this.prisma.account as unknown as {
+			findUnique(args: unknown): Promise<AccountWithRolesRow | null>;
+			create(args: unknown): Promise<AccountWithRolesRow>;
+		};
+	}
+
+	private get roleQuery() {
+		return (this.prisma as unknown as { role: { upsert(args: unknown): Promise<RoleRow> } }).role;
+	}
+
 	async findByEmail(email: string): Promise<User | null> {
-		const account = await this.prisma.account.findUnique({
+		const account = await this.accountQuery.findUnique({
 			where: { email },
+			include: ACCOUNT_ROLES_INCLUDE,
 		});
 
 		return account ? this.toDomainUser(account) : null;
 	}
 
 	async findById(userId: string): Promise<User | null> {
-		const id = Number(userId);
-		if (Number.isNaN(id)) {
-			return null;
-		}
-
-		const account = await this.prisma.account.findUnique({
-			where: { id },
+		const account = await this.accountQuery.findUnique({
+			where: { id: userId },
+			include: ACCOUNT_ROLES_INCLUDE,
 		});
 
 		return account ? this.toDomainUser(account) : null;
 	}
 
 	async createLocalUser(input: CreateLocalUserInput): Promise<User> {
-		const createdAccount = await this.prisma.account.create({
+		const role = await this.ensureRoleExists(input.role);
+
+		const createdAccount = await this.accountQuery.create({
 			data: {
 				email: input.email,
 				password: input.passwordHash,
-				role: input.role as PrismaRole,
 				emailVerified: false,
+				provider: 'LOCAL',
+				accountRoles: {
+					create: {
+						roleId: role.id,
+					},
+				},
 			},
+			include: ACCOUNT_ROLES_INCLUDE,
 		});
 
 		return this.toDomainUser(createdAccount);
 	}
 
 	async createOAuthUser(input: CreateOAuthUserInput): Promise<User> {
-		const createdAccount = await this.prisma.account.create({
+		const role = await this.ensureRoleExists(input.role);
+
+		const createdAccount = await this.accountQuery.create({
 			data: {
 				email: input.email,
 				password: '',
-				role: input.role as PrismaRole,
 				emailVerified: true,
+				provider: input.provider,
+				accountRoles: {
+					create: {
+						roleId: role.id,
+					},
+				},
 			},
+			include: ACCOUNT_ROLES_INCLUDE,
 		});
 
 		return this.toDomainUser(createdAccount);
@@ -81,13 +130,11 @@ export class AuthRepository implements IAuthRepository {
 			return null;
 		}
 
-		const id = Number(rawUserId);
-		if (Number.isNaN(id)) {
-			return null;
-		}
+		const id = String(rawUserId);
 
-		const account = await this.prisma.account.findUnique({
+		const account = await this.accountQuery.findUnique({
 			where: { id },
+			include: ACCOUNT_ROLES_INCLUDE,
 		});
 
 		return account ? this.toDomainUser(account) : null;
@@ -97,16 +144,45 @@ export class AuthRepository implements IAuthRepository {
 		void token;
 	}
 
-	private toDomainUser(account: PrismaAccount): User {
+	private async ensureRoleExists(roleName: Role) {
+		return this.roleQuery.upsert({
+			where: { name: roleName },
+			update: {},
+			create: {
+				name: roleName,
+			},
+		});
+	}
+
+	private toDomainUser(account: AccountWithRolesRow): User {
+		const firstRole = account.accountRoles[0]?.role?.name;
+		const normalizedRole = this.toDomainRole(firstRole);
+
 		return {
 			id: String(account.id),
 			email: account.email,
 			passwordHash: account.password,
-			role: account.role as User['role'],
-			provider: 'LOCAL',
+			role: normalizedRole,
+			provider: this.toDomainProvider(account.provider),
 			providerId: null,
 			createdAt: account.createdAt,
 			updatedAt: account.createdAt,
 		};
+	}
+
+	private toDomainRole(roleName: string | undefined): User['role'] {
+		if (roleName === Role.CREATOR || roleName === Role.DONOR || roleName === Role.COMPANY || roleName === Role.ADMIN) {
+			return roleName;
+		}
+
+		return Role.DONOR;
+	}
+
+	private toDomainProvider(provider: string): User['provider'] {
+		if (provider === 'GOOGLE' || provider === 'LINKEDIN' || provider === 'LOCAL') {
+			return provider;
+		}
+
+		return 'LOCAL';
 	}
 }

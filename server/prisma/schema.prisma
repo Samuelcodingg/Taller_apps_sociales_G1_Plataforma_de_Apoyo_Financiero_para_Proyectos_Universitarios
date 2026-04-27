@@ -12,42 +12,50 @@ datasource db {
   provider = "mysql"
 }
 
-enum Role {
-  DONOR
-  CREATOR
-}
-
 model Account {
-  id            Int               @id @default(autoincrement()) @map("id_account")
-  email         String            @unique @db.VarChar(150)
-  password      String            @db.VarChar(255)
-  role          Role
-  emailVerified Boolean           @default(false) @map("email_verified")
-  institutionId Int?              @map("id_institution")
-  createdAt     DateTime          @default(now()) @map("created_at") @db.DateTime(0)
+  id               String            @id @default(uuid()) @map("id_account") @db.Char(36)
+  email            String            @unique @db.VarChar(150)
+  password         String            @db.VarChar(255)
+  emailVerified    Boolean           @default(false) @map("email_verified")
+  provider         String            @db.VarChar(50)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamp(0)
+  lastLoginAt      DateTime?         @map("last_login_at") @db.Timestamp(0)
+  isActive         Boolean           @default(true) @map("is_active")
 
-  institution    Institution?      @relation(fields: [institutionId], references: [id])
-  profile        Profile?
-  createdCampaigns Campaign[]      @relation("CampaignCreator")
+  profile          Profile?
+  createdCampaigns Campaign[]        @relation("CampaignCreator")
   campaignComments CommentCampaign[]
-  donations      Donation[]        @relation("DonationDonor")
+  donations        Donation[]        @relation("DonationDonor")
+  accountRoles     AccountRole[]
 
   @@map("account")
 }
 
-model Institution {
-  id      Int       @id @default(autoincrement()) @map("id_institution")
-  name    String    @db.VarChar(150)
-  domain  String    @db.VarChar(100)
+model Role {
+  id          String       @id @default(uuid()) @map("id_role") @db.Char(36)
+  name        String       @unique @db.VarChar(50)
+  description String?      @db.Text
 
-  accounts Account[]
+  accountRoles AccountRole[]
 
-  @@map("institution")
+  @@map("roles")
+}
+
+model AccountRole {
+  accountId String   @map("id_account") @db.Char(36)
+  roleId    String   @map("id_role") @db.Char(36)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, roleId])
+  @@map("account_roles")
 }
 
 model Profile {
   id                 Int           @id @default(autoincrement()) @map("id_profile")
-  accountId          Int           @unique @map("id_account")
+  accountId          String        @unique @map("id_account") @db.Char(36)
   names              String        @db.VarChar(150)
   surnames           String        @db.VarChar(150)
   birthDate          DateTime      @map("birth_date") @db.Date
@@ -73,7 +81,7 @@ model SocialMedia {
 
 model Campaign {
   id            Int                @id @default(autoincrement()) @map("id_campaign")
-  creatorId     Int                @map("id_creator")
+  creatorId     String             @map("id_creator") @db.Char(36)
   title         String             @db.VarChar(200)
   description   String             @db.Text
   goalAmount    Decimal            @map("goal_amount") @db.Decimal(10, 2)
@@ -138,7 +146,7 @@ model CampaignMedia {
 model CommentCampaign {
   id        Int              @id @default(autoincrement()) @map("id_comment_campaign")
   campaignId Int             @map("id_campaign")
-  accountId Int              @map("id_account")
+  accountId String           @map("id_account") @db.Char(36)
   content   String           @db.Text
   parentId  Int?             @map("parent_id")
   createdAt DateTime         @default(now()) @map("created_at") @db.DateTime(0)
@@ -154,7 +162,7 @@ model CommentCampaign {
 model Donation {
   id          Int      @id @default(autoincrement()) @map("id_donation")
   campaignId  Int      @map("id_campaign")
-  donorId     Int      @map("id_donor")
+  donorId     String   @map("id_donor") @db.Char(36)
   amount      Decimal  @db.Decimal(10, 2)
   isAnonymous Boolean  @default(false) @map("is_anonymous")
 
