@@ -1,11 +1,30 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  Home, Search, PlusCircle, User, LayoutDashboard, ShieldCheck, LogIn, Sparkles,
+  Home,
+  Search,
+  PlusCircle,
+  User,
+  LayoutDashboard,
+  ShieldCheck,
+  LogIn,
+  Sparkles,
+  LogOut,
+  RegexIcon,
 } from "lucide-react";
 import {
-  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar, SidebarHeader, SidebarFooter,
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+  SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/contexts/AuthProvider";
 
 const main = [
   { title: "Inicio", url: "/", icon: Home },
@@ -17,17 +36,26 @@ const creator = [
   { title: "Mi panel", url: "/dashboard", icon: LayoutDashboard },
   { title: "Mi perfil", url: "/perfil", icon: User },
 ];
-const others = [
-  { title: "Iniciar sesión", url: "/auth", icon: LogIn },
-  { title: "Administración", url: "/admin", icon: ShieldCheck },
+
+const donor = [];
+
+const account = [
+  { title: "Registrarse", url: "/auth", icon: LogIn },
+  { title: "Iniciar sesión", url: "/login", icon: LogIn },
+  { title: "Cerrar sesión", url: "/", icon: LogOut },
 ];
+
+const admin = [{ title: "Administración", url: "/admin", icon: ShieldCheck }];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
-  const isActive = (p: string) => (p === "/" ? pathname === "/" : pathname.startsWith(p));
+  const { user } = useAuth();
+  const isActive = (p: string) =>
+    p === "/" ? pathname === "/" : pathname.startsWith(p);
 
+  // Condicionar para el "Cierre de Sesión"
   const renderItems = (items: typeof main) =>
     items.map((it) => (
       <SidebarMenuItem key={it.url}>
@@ -50,32 +78,54 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="leading-tight">
               <div className="font-semibold">Sembradora</div>
-              <div className="text-xs text-muted-foreground">Crowdfunding universitario</div>
+              <div className="text-xs text-muted-foreground">
+                Crowdfunding universitario
+              </div>
             </div>
           )}
         </NavLink>
       </SidebarHeader>
       <SidebarContent>
+        {/* Sección "Descubrir" */}
         <SidebarGroup>
           <SidebarGroupLabel>Descubrir</SidebarGroupLabel>
-          <SidebarGroupContent><SidebarMenu>{renderItems(main)}</SidebarMenu></SidebarGroupContent>
+          <SidebarGroupContent>
+            <SidebarMenu>{renderItems(main)}</SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Creador</SidebarGroupLabel>
-          <SidebarGroupContent><SidebarMenu>{renderItems(creator)}</SidebarMenu></SidebarGroupContent>
-        </SidebarGroup>
+        {/* Sección "Creador" */}
+        {user && user.rol === "creator" && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Creador</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>{renderItems(creator)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+        {/* Sección "Cuenta" */}
         <SidebarGroup>
           <SidebarGroupLabel>Cuenta</SidebarGroupLabel>
-          <SidebarGroupContent><SidebarMenu>{renderItems(others)}</SidebarMenu></SidebarGroupContent>
+          <SidebarGroupContent>
+            <SidebarMenu>{renderItems(account)}</SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
+        {/* Sección "Admin" */}
+        {user && user.rol === "admin" && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>{renderItems(admin)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
-      <SidebarFooter className="p-3">
+      {/* <SidebarFooter className="p-3">
         {!collapsed && (
           <div className="rounded-xl border bg-accent/50 p-3 text-xs text-accent-foreground">
             Prototipo demo · datos de prueba
           </div>
         )}
-      </SidebarFooter>
+      </SidebarFooter> */}
     </Sidebar>
   );
 }
