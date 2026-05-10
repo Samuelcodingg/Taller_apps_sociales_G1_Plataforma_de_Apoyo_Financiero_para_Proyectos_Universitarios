@@ -26,6 +26,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/explorar" element={<Explorar />} />
       <Route path="/tendencias" element={<Tendencias />} />
+      <Route path="/campana/:id" element={<Campana />} />
       {/* Rutas del usuario "creator" */}
       <Route
         element={
@@ -36,7 +37,6 @@ const AppRoutes = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/perfil" element={<Perfil />} />
       </Route>
-      <Route path="/campana/:id" element={<Campana />} />
       {/* Rutas del usuario "admin" */}
       <Route
         element={<ProtectedRoute isAllowed={!!user && user.rol === "admin"} />}

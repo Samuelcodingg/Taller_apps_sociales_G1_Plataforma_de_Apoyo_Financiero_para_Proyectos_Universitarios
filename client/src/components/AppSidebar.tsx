@@ -10,6 +10,7 @@ import {
   Sparkles,
   LogOut,
   RegexIcon,
+  UserRound,
 } from "lucide-react";
 import {
   Sidebar,
@@ -25,38 +26,24 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthProvider";
-
-const main = [
-  { title: "Inicio", url: "/", icon: Home },
-  { title: "Explorar", url: "/explorar", icon: Search },
-  { title: "Tendencias", url: "/tendencias", icon: Sparkles },
-];
-const creator = [
-  { title: "Crear campaña", url: "/crear", icon: PlusCircle },
-  { title: "Mi panel", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Mi perfil", url: "/perfil", icon: User },
-];
-
-const donor = [];
-
-const account = [
-  { title: "Registrarse", url: "/auth", icon: LogIn },
-  { title: "Iniciar sesión", url: "/login", icon: LogIn },
-  { title: "Cerrar sesión", url: "/", icon: LogOut },
-];
-
-const admin = [{ title: "Administración", url: "/admin", icon: ShieldCheck }];
+import { SidebarOptions } from "@/types/sidebar";
+import {
+  SIDEBAR_ACCOUNT,
+  SIDEBAR_ADMIN,
+  SIDEBAR_CREATOR,
+  SIDEBAR_MAIN,
+} from "@/lib/constants";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
   const { user } = useAuth();
+
   const isActive = (p: string) =>
     p === "/" ? pathname === "/" : pathname.startsWith(p);
 
-  // Condicionar para el "Cierre de Sesión"
-  const renderItems = (items: typeof main) =>
+  const renderItems = (items: SidebarOptions) =>
     items.map((it) => (
       <SidebarMenuItem key={it.url}>
         <SidebarMenuButton asChild isActive={isActive(it.url)}>
@@ -90,7 +77,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Descubrir</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>{renderItems(main)}</SidebarMenu>
+            <SidebarMenu>{renderItems(SIDEBAR_MAIN)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
         {/* Sección "Creador" */}
@@ -98,34 +85,39 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupLabel>Creador</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>{renderItems(creator)}</SidebarMenu>
+              <SidebarMenu>{renderItems(SIDEBAR_CREATOR)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
         {/* Sección "Cuenta" */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Cuenta</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>{renderItems(account)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {!user && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Cuenta</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>{renderItems(SIDEBAR_ACCOUNT)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
         {/* Sección "Admin" */}
         {user && user.rol === "admin" && (
           <SidebarGroup>
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>{renderItems(admin)}</SidebarMenu>
+              <SidebarMenu>{renderItems(SIDEBAR_ADMIN)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
       </SidebarContent>
-      {/* <SidebarFooter className="p-3">
-        {!collapsed && (
-          <div className="rounded-xl border bg-accent/50 p-3 text-xs text-accent-foreground">
-            Prototipo demo · datos de prueba
-          </div>
-        )}
-      </SidebarFooter> */}
+      {user && (
+        <SidebarFooter className="p-3">
+          {
+            <div className="flex gap-3 items-center justify-center rounded-xl border bg-accent/50 p-3 text-sm text-accent-foreground cursor-pointer hover:bg-accent">
+              <LogOut className="h-4 w-4" />
+              {!collapsed && <span className="">Cerrar sesión</span>}
+            </div>
+          }
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 }
