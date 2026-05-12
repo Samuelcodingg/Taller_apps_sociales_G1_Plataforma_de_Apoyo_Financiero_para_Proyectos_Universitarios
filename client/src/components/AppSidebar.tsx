@@ -1,34 +1,50 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  Home, Search, PlusCircle, User, LayoutDashboard, ShieldCheck, LogIn, Sparkles,
+  Home,
+  Search,
+  PlusCircle,
+  User,
+  LayoutDashboard,
+  ShieldCheck,
+  LogIn,
+  Sparkles,
+  LogOut,
+  RegexIcon,
+  UserRound,
 } from "lucide-react";
 import {
-  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar, SidebarHeader, SidebarFooter,
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+  SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
-
-const main = [
-  { title: "Inicio", url: "/", icon: Home },
-  { title: "Explorar", url: "/explorar", icon: Search },
-  { title: "Tendencias", url: "/tendencias", icon: Sparkles },
-];
-const creator = [
-  { title: "Crear campaña", url: "/crear", icon: PlusCircle },
-  { title: "Mi panel", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Mi perfil", url: "/perfil", icon: User },
-];
-const others = [
-  { title: "Iniciar sesión", url: "/auth", icon: LogIn },
-  { title: "Administración", url: "/admin", icon: ShieldCheck },
-];
+import { useAuth } from "@/contexts/AuthProvider";
+import { SidebarOptions } from "@/types/sidebar";
+import {
+  SIDEBAR_ACCOUNT,
+  SIDEBAR_ADMIN,
+  SIDEBAR_CREATOR,
+  SIDEBAR_DONOR,
+  SIDEBAR_MAIN,
+} from "@/lib/constants";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
-  const isActive = (p: string) => (p === "/" ? pathname === "/" : pathname.startsWith(p));
+  const { user } = useAuth();
 
-  const renderItems = (items: typeof main) =>
+  const isActive = (p: string) =>
+    p === "/" ? pathname === "/" : pathname.startsWith(p);
+
+  const renderItems = (items: SidebarOptions) =>
     items.map((it) => (
       <SidebarMenuItem key={it.url}>
         <SidebarMenuButton asChild isActive={isActive(it.url)}>
@@ -50,32 +66,67 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="leading-tight">
               <div className="font-semibold">Sembradora</div>
-              <div className="text-xs text-muted-foreground">Crowdfunding universitario</div>
+              <div className="text-xs text-muted-foreground">
+                Crowdfunding universitario
+              </div>
             </div>
           )}
         </NavLink>
       </SidebarHeader>
       <SidebarContent>
+        {/* Sección "Descubrir" */}
         <SidebarGroup>
           <SidebarGroupLabel>Descubrir</SidebarGroupLabel>
-          <SidebarGroupContent><SidebarMenu>{renderItems(main)}</SidebarMenu></SidebarGroupContent>
+          <SidebarGroupContent>
+            <SidebarMenu>{renderItems(SIDEBAR_MAIN)}</SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Creador</SidebarGroupLabel>
-          <SidebarGroupContent><SidebarMenu>{renderItems(creator)}</SidebarMenu></SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Cuenta</SidebarGroupLabel>
-          <SidebarGroupContent><SidebarMenu>{renderItems(others)}</SidebarMenu></SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter className="p-3">
-        {!collapsed && (
-          <div className="rounded-xl border bg-accent/50 p-3 text-xs text-accent-foreground">
-            Prototipo demo · datos de prueba
-          </div>
+        {/* Sección "Creador" */}
+        {user && user.rol === "creator" && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Creador</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>{renderItems(SIDEBAR_CREATOR)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
-      </SidebarFooter>
+        {user && user.rol === "donor" && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Donador</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>{renderItems(SIDEBAR_DONOR)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+        {/* Sección "Cuenta" */}
+        {!user && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Cuenta</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>{renderItems(SIDEBAR_ACCOUNT)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+        {/* Sección "Admin" */}
+        {user && user.rol === "admin" && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>{renderItems(SIDEBAR_ADMIN)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+      {user && (
+        <SidebarFooter className="p-3">
+          {
+            <div className="flex gap-3 items-center justify-center rounded-xl border bg-accent/50 p-3 text-sm text-accent-foreground cursor-pointer hover:bg-accent">
+              <LogOut className="h-4 w-4" />
+              {!collapsed && <span className="">Cerrar sesión</span>}
+            </div>
+          }
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 }
