@@ -21,7 +21,10 @@ export const SIDEBAR_CREATOR = [
   { title: "Mi perfil", url: "/perfil", icon: User },
 ];
 
-export const SIDEBAR_DONOR = [];
+export const SIDEBAR_DONOR = [
+  { title: "Mis donaciones", url: "/donations", icon: LayoutDashboard },
+  { title: "Mi perfil", url: "/perfil", icon: User },
+];
 
 export const SIDEBAR_ACCOUNT = [
   { title: "Registrarse", url: "/auth", icon: LogIn },

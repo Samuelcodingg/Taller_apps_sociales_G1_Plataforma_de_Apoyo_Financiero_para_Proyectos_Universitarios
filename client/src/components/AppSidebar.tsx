@@ -31,6 +31,7 @@ import {
   SIDEBAR_ACCOUNT,
   SIDEBAR_ADMIN,
   SIDEBAR_CREATOR,
+  SIDEBAR_DONOR,
   SIDEBAR_MAIN,
 } from "@/lib/constants";
 
@@ -86,6 +87,14 @@ export function AppSidebar() {
             <SidebarGroupLabel>Creador</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(SIDEBAR_CREATOR)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+        {user && user.rol === "donor" && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Donador</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>{renderItems(SIDEBAR_DONOR)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
