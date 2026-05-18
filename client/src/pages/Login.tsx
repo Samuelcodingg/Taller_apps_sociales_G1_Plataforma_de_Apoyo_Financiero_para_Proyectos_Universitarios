@@ -1,15 +1,28 @@
-import { AppLayout } from "@/components/AppLayout";
-import { LoginForm, loginSchema } from "@/schemas/loginSchema";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TabsContent } from "@radix-ui/react-tabs";
+import { AlertCircle, CheckCircle2, Loader2, Mail } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Link, useNavigate } from "react-router-dom";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAuth } from "@/contexts/AuthProvider";
+import { LoginForm, loginSchema } from "@/schemas/loginSchema";
+import { useLoginUserMutation } from "@/slices/apiSlice";
+import { toast } from "sonner";
+import GoogleIcon from "@/components/icons/GoogleIcon";
 
-const Login = () => {
+type LoginProps = {
+  value: string;
+};
+
+const Login = ({ value }: LoginProps) => {
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    setError,
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -17,53 +30,126 @@ const Login = () => {
       password: "",
     },
   });
-  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [loginUser, { data, isLoading, isError, error }] =
+    useLoginUserMutation();
 
   const onSubmit: SubmitHandler<LoginForm> = async (data) => {
-    const { email, password } = data;
-
     try {
-      console.log("Se enviarán los datos: ", data);
+      console.log("Datos a enviar: ", data);
 
-      await login({ email, password });
+      // const response = await loginUser(data).unwrap();
+      // console.log("Response: ", response);
+
+      toast.success("Inicio de sesión exitoso");
+
+      // navigate("/dashboard");
     } catch (error) {
-      console.error("Ocurrió un error al iniciar sesión");
-      alert("Ocurrió un problema al iniciar sesión ...");
-    } finally {
-      reset();
+      console.error("Error: ", error);
+
+      // Colocar esto o sino un toast.error
+      setError("root", {
+        message: error?.data?.message || "Correo o contraseña incorrectos",
+      });
     }
   };
 
   return (
-    <AppLayout>
-      <div>INICIA SESIÓN</div>
+    <TabsContent value={value} className="space-y-4 mt-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Correo</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="tu.nombre@uni.edu.pe"
+            disabled={isLoading}
+            {...register("email")}
+            required
+          />
+          {/* <p className="text-xs text-muted-foreground">
+            Validamos que pertenezcas a una institución reconocida.
+          </p> */}
+        </div>
+        {errors.email && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errors.email.message}</AlertDescription>
+          </Alert>
+        )}
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <label htmlFor="email">Correo: </label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          placeholder="Correo"
-          {...register("email")}
-        />
-        {errors.email && <p>{errors.email.message}</p>}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Contraseña</Label>
+            <p className="text-[13px] text-black-500 cursor-pointer">
+              ¿Olvidaste tu contraseña?
+            </p>
+          </div>
+          <Input
+            id="password"
+            type="password"
+            placeholder="Ingresa tu contraseña"
+            disabled={isLoading}
+            {...register("password")}
+            required
+          />
+          {/* <p className="text-xs text-muted-foreground">
+            Validamos que pertenezcas a una institución reconocida.
+          </p> */}
+          {errors.password && (
+            <p className="text-sm text-red-500">{errors.password.message}</p>
+          )}
+        </div>
 
-        <label htmlFor="password">Contraseña: </label>
-        <input
-          type="password"
-          name="password"
-          id="password"
-          placeholder="Contraseña"
-          {...register("password")}
-        />
-        {errors.password && <p>{errors.password.message}</p>}
+        {/* ERROR GENERAL */}
+        {errors.root && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errors.root.message}</AlertDescription>
+          </Alert>
+        )}
 
-        <button className="border border-black px-2 py-1 cursor-pointer">
-          Enviar
-        </button>
+        {/* BOTÓN DE ENVÍO */}
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Iniciando sesión...
+            </>
+          ) : (
+            "Iniciar sesión"
+          )}
+        </Button>
+
+        <div className="flex items-center justify-center gap-3">
+          <hr className="w-full" />
+          <span className="text-sm">o</span>
+          <hr className="w-full" />
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() => {
+            toast.success("Conectado con Google");
+            navigate("/perfil");
+          }}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Iniciando sesión...
+            </>
+          ) : (
+            <>
+              <GoogleIcon />
+              Continuar con Google
+            </>
+          )}
+        </Button>
       </form>
-    </AppLayout>
+    </TabsContent>
   );
 };
 

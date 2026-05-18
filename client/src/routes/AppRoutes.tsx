@@ -12,8 +12,8 @@ import Validacion from "@/pages/Validacion";
 import { Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "@/contexts/AuthProvider";
-import Login from "@/pages/Login";
 import MyDonations from "@/pages/MyDonations";
+import Login from "@/pages/LoginPrueba";
 
 const AppRoutes = () => {
   const { user } = useAuth();
@@ -34,7 +34,7 @@ const AppRoutes = () => {
       {/* Rutas del usuario "creator" */}
       <Route
         element={
-          <ProtectedRoute isAllowed={!!user && user.rol === "creator"} />
+          <ProtectedRoute isAllowed={!!user && user.role === "creator"} />
         }
       >
         <Route path="/crear" element={<Crear />} />
@@ -42,13 +42,13 @@ const AppRoutes = () => {
       </Route>
       {/* Rutas del usuario "donor" */}
       <Route
-        element={<ProtectedRoute isAllowed={!!user && user.rol === "donor"} />}
+        element={<ProtectedRoute isAllowed={!!user && user.role === "donor"} />}
       >
         <Route path="/donations" element={<MyDonations />} />
       </Route>
       {/* Rutas del usuario "admin" */}
       <Route
-        element={<ProtectedRoute isAllowed={!!user && user.rol === "admin"} />}
+        element={<ProtectedRoute isAllowed={!!user && user.role === "admin"} />}
       >
         <Route path="/admin" element={<Admin />} />
       </Route>

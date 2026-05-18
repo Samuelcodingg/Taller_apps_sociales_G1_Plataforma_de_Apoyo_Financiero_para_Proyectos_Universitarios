@@ -82,7 +82,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         {/* Sección "Creador" */}
-        {user && user.rol === "creator" && (
+        {user && user.role === "creator" && (
           <SidebarGroup>
             <SidebarGroupLabel>Creador</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -90,7 +90,7 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
-        {user && user.rol === "donor" && (
+        {user && user.role === "donor" && (
           <SidebarGroup>
             <SidebarGroupLabel>Donador</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -108,7 +108,7 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
         {/* Sección "Admin" */}
-        {user && user.rol === "admin" && (
+        {user && user.role === "admin" && (
           <SidebarGroup>
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>

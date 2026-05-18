@@ -27,8 +27,8 @@ export const SIDEBAR_DONOR = [
 ];
 
 export const SIDEBAR_ACCOUNT = [
-  { title: "Registrarse", url: "/auth", icon: LogIn },
-  { title: "Iniciar sesión", url: "/login", icon: LogIn },
+  { title: "Registro / Inicio de sesión", url: "/auth", icon: LogIn },
+  // { title: "Iniciar sesión", url: "/login", icon: LogIn },
 ];
 
 export const SIDEBAR_ADMIN = [

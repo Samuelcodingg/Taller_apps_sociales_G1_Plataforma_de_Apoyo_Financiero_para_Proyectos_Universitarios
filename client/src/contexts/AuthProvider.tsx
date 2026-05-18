@@ -21,13 +21,13 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // const [user, setUser] = useState<User>(null);
-  const [user, setUser] = useState<User>({
-    id: 1,
-    name: "Jhunior",
-    rol: "creator",
-    email: "jhunior@unmsm.edu.pe",
-  });
+  const [user, setUser] = useState<User>(null);
+  // const [user, setUser] = useState<User>({
+  //   id: 1,
+  //   name: "Jhunior",
+  //   rol: "creator",
+  //   email: "jhunior@unmsm.edu.pe",
+  // });
 
   const login = async ({ email, password }) => {
     try {
