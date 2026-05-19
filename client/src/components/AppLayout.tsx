@@ -3,8 +3,11 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Bell } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthProvider";
 
 export function AppLayout({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gradient-soft">
@@ -17,14 +20,22 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 Construyamos juntos
               </span>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="h-9 w-9 grid place-items-center rounded-full hover:bg-muted transition" aria-label="Notificaciones">
-                <Bell className="h-4 w-4" />
-              </button>
-              <Avatar className="h-9 w-9 ring-2 ring-primary/20">
-                <AvatarFallback className="bg-gradient-warm text-primary-foreground text-sm">MF</AvatarFallback>
-              </Avatar>
-            </div>
+            {/*  */}
+            {user && (
+              <div className="flex items-center gap-3">
+                <button
+                  className="h-9 w-9 grid place-items-center rounded-full hover:bg-muted transition"
+                  aria-label="Notificaciones"
+                >
+                  <Bell className="h-4 w-4" />
+                </button>
+                <Avatar className="h-9 w-9 ring-2 ring-primary/20">
+                  <AvatarFallback className="bg-gradient-warm text-primary-foreground text-sm">
+                    MF
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            )}
           </header>
           <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
         </div>

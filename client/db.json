@@ -1,0 +1,162 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Jhunior",
+      "rol": "creator",
+      "email": "jhunior@unmsm.edu.pe",
+      "password": "Jhunior"
+    },
+    {
+      "id": 2,
+      "name": "Diego",
+      "rol": "donor",
+      "email": "diego@gmail.com",
+      "password": "Diego"
+    },
+    {
+      "id": 3,
+      "name": "José",
+      "rol": "creator",
+      "email": "jose@unmsm.edu.pe",
+      "password": "José"
+    },
+    {
+      "id": 4,
+      "name": "Pablo",
+      "rol": "donor",
+      "email": "pablo@gmail.com",
+      "password": "Pablo"
+    }
+  ],
+  "campaign": [
+    {
+      "id": "1",
+      "title": "Huerto urbano universitario",
+      "description": "Transformar un espacio en desuso del campus en un huerto comunitario sostenible.",
+      "image": "c1",
+      "goal": 8000,
+      "raised": 5420,
+      "donors": 142,
+      "deadline": "2025-06-30",
+      "university": "Universidad Nacional",
+      "faculty": "Ingeniería Ambiental",
+      "categories": [
+        "Sostenibilidad",
+        "Comunidad"
+      ],
+      "status": "activa",
+      "creator": {
+        "name": "María Fernández",
+        "verified": true
+      },
+      "trending": 92
+    },
+    {
+      "id": "2",
+      "title": "Robots educativos para colegios rurales",
+      "description": "Diseñamos kits de robótica accesibles para escuelas con bajos recursos.",
+      "image": "c2",
+      "goal": 15000,
+      "raised": 11200,
+      "donors": 318,
+      "deadline": "2025-07-15",
+      "university": "PUCP",
+      "faculty": "Ingeniería Mecatrónica",
+      "categories": [
+        "Tecnología",
+        "Educación"
+      ],
+      "status": "activa",
+      "creator": {
+        "name": "Carlos Mendoza",
+        "verified": true
+      },
+      "trending": 98
+    },
+    {
+      "id": "3",
+      "title": "Biblioteca móvil para mi barrio",
+      "description": "Una biblioteca itinerante que llevará libros a niños de zonas periféricas.",
+      "image": "c3",
+      "goal": 5000,
+      "raised": 1850,
+      "donors": 64,
+      "deadline": "2025-08-01",
+      "university": "Universidad Nacional",
+      "faculty": "Educación",
+      "categories": [
+        "Educación",
+        "Cultura"
+      ],
+      "status": "activa",
+      "creator": {
+        "name": "Lucía Ramos",
+        "verified": true
+      },
+      "trending": 71
+    },
+    {
+      "id": "4",
+      "title": "Documental: voces del altiplano",
+      "description": "Cortometraje documental sobre saberes ancestrales andinos.",
+      "image": "c4",
+      "goal": 12000,
+      "raised": 9800,
+      "donors": 207,
+      "deadline": "2025-05-20",
+      "university": "UNMSM",
+      "faculty": "Comunicaciones",
+      "categories": [
+        "Cultura",
+        "Arte"
+      ],
+      "status": "activa",
+      "creator": {
+        "name": "Andrés Quispe",
+        "verified": true
+      },
+      "trending": 88
+    }
+  ],
+  "donations": [
+    {
+      "id": "d1",
+      "donor": "Sofía P.",
+      "amount": 50,
+      "anonymous": false,
+      "date": "hace 2h",
+      "message": "¡Mucho éxito!"
+    },
+    {
+      "id": "d2",
+      "donor": "Anónimo",
+      "amount": 200,
+      "anonymous": true,
+      "date": "hace 5h"
+    },
+    {
+      "id": "d3",
+      "donor": "Diego R.",
+      "amount": 30,
+      "anonymous": false,
+      "date": "hace 1d",
+      "message": "Gran iniciativa."
+    },
+    {
+      "id": "d4",
+      "donor": "Anónimo",
+      "amount": 100,
+      "anonymous": true,
+      "date": "hace 1d"
+    },
+    {
+      "id": "d5",
+      "donor": "Valentina S.",
+      "amount": 75,
+      "anonymous": false,
+      "date": "hace 2d",
+      "message": "¡Vamos!"
+    }
+  ]
+}

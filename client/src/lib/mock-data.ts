@@ -2,24 +2,10 @@ import c1 from "@/assets/campaign-1.jpg";
 import c2 from "@/assets/campaign-2.jpg";
 import c3 from "@/assets/campaign-3.jpg";
 import c4 from "@/assets/campaign-4.jpg";
+import { Campaign } from "@/types/campaign";
+import { Donation } from "@/types/donation";
 
-export type Campaign = {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  goal: number;
-  raised: number;
-  donors: number;
-  deadline: string;
-  university: string;
-  faculty: string;
-  categories: string[];
-  status: "borrador" | "activa" | "finalizada";
-  creator: { name: string; verified: boolean; avatar?: string };
-  trending: number;
-};
-
+// Agregado al db.json
 export const campaigns: Campaign[] = [
   {
     id: "1",
@@ -75,8 +61,7 @@ export const campaigns: Campaign[] = [
   {
     id: "4",
     title: "Documental: voces del altiplano",
-    description:
-      "Cortometraje documental sobre saberes ancestrales andinos.",
+    description: "Cortometraje documental sobre saberes ancestrales andinos.",
     image: c4,
     goal: 12000,
     raised: 9800,
@@ -110,21 +95,34 @@ export const universities = [
   "UNI",
 ];
 
-export type Donation = {
-  id: string;
-  donor: string;
-  amount: number;
-  anonymous: boolean;
-  date: string;
-  message?: string;
-};
-
+// Agregado al db.json
 export const recentDonations: Donation[] = [
-  { id: "d1", donor: "Sofía P.", amount: 50, anonymous: false, date: "hace 2h", message: "¡Mucho éxito!" },
+  {
+    id: "d1",
+    donor: "Sofía P.",
+    amount: 50,
+    anonymous: false,
+    date: "hace 2h",
+    message: "¡Mucho éxito!",
+  },
   { id: "d2", donor: "Anónimo", amount: 200, anonymous: true, date: "hace 5h" },
-  { id: "d3", donor: "Diego R.", amount: 30, anonymous: false, date: "hace 1d", message: "Gran iniciativa." },
+  {
+    id: "d3",
+    donor: "Diego R.",
+    amount: 30,
+    anonymous: false,
+    date: "hace 1d",
+    message: "Gran iniciativa.",
+  },
   { id: "d4", donor: "Anónimo", amount: 100, anonymous: true, date: "hace 1d" },
-  { id: "d5", donor: "Valentina S.", amount: 75, anonymous: false, date: "hace 2d", message: "¡Vamos!" },
+  {
+    id: "d5",
+    donor: "Valentina S.",
+    amount: 75,
+    anonymous: false,
+    date: "hace 2d",
+    message: "¡Vamos!",
+  },
 ];
 
 export const updates = [
@@ -143,7 +141,22 @@ export const updates = [
 ];
 
 export const comments = [
-  { id: "c1", author: "Pedro M.", date: "hace 3h", body: "¡Increíble proyecto, sigan así!" },
-  { id: "c2", author: "Ana L.", date: "hace 1d", body: "¿Cómo puedo ser voluntaria?" },
-  { id: "c3", author: "Tomás G.", date: "hace 2d", body: "Compartido con mi grupo de amigos 💪" },
+  {
+    id: "c1",
+    author: "Pedro M.",
+    date: "hace 3h",
+    body: "¡Increíble proyecto, sigan así!",
+  },
+  {
+    id: "c2",
+    author: "Ana L.",
+    date: "hace 1d",
+    body: "¿Cómo puedo ser voluntaria?",
+  },
+  {
+    id: "c3",
+    author: "Tomás G.",
+    date: "hace 2d",
+    body: "Compartido con mi grupo de amigos 💪",
+  },
 ];
