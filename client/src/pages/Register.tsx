@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRegisterUserMutation } from "@/slices/apiSlice";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TabsContent } from "@radix-ui/react-tabs";
 import { SubmitHandler, useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,7 @@ type RegisterProps = {
 
 const Register = ({ value }: RegisterProps) => {
   const navigate = useNavigate();
-
+  const location = useLocation();
   const [accountType, setAccountType] = useState<AccountType>(ACCOUNT_TYPES[0]);
 
   const {
@@ -42,34 +42,49 @@ const Register = ({ value }: RegisterProps) => {
     },
   });
 
+  const formData = location.state?.formData as RegisterForm | undefined;
+
   const [registerUser, { isLoading }] = useRegisterUserMutation();
 
   const onSubmit: SubmitHandler<RegisterForm> = async (data) => {
     try {
-      console.log("Datos a enviar: ", data);
+      if (data.accountType === ACCOUNT_TYPES[0]) {
+        navigate("/register/validation", {
+          state: { formData: data },
+        });
+        return;
+      }
 
       // const response = await registerUser(data).unwrap();
-
       // console.log("Respuesta: ", response);
 
       toast.success("Registro exitoso");
-
-      // navigate("/dashboard");
+      // navigate("/perfil");
     } catch (error) {
       console.error("Error: ", error);
 
+      // Esto se puede cambiar por un toast - El componente Alert de abajo se quitaría
       setError("root", {
         message: error?.data?.message || "Ocurrió un error al registrarse",
       });
     }
   };
 
-  const selectAccountType = () => {
-    const condition =
-      accountType === ACCOUNT_TYPES[0] ? ACCOUNT_TYPES[1] : ACCOUNT_TYPES[0];
-    setAccountType(condition);
-    setValue("accountType", condition);
+  const selectAccountType = (type: AccountType) => {
+    setAccountType(type);
+    setValue("accountType", type);
   };
+
+  useEffect(() => {
+    if (!formData) return;
+
+    setAccountType(formData.accountType);
+    setValue("accountType", formData.accountType);
+    setValue("name", formData.name ?? "");
+    setValue("email", formData.email);
+    setValue("password", formData.password);
+    setValue("confirmPassword", formData.confirmPassword);
+  }, [formData, setValue]);
 
   return (
     <TabsContent value={value} className="mt-6">
@@ -82,7 +97,7 @@ const Register = ({ value }: RegisterProps) => {
             {/* ESTUDIANTE */}
             <button
               type="button"
-              onClick={selectAccountType}
+              onClick={() => selectAccountType(ACCOUNT_TYPES[0])}
               disabled={isLoading}
               className={`rounded-xl border p-4 text-left transition-all
               ${
@@ -114,7 +129,7 @@ const Register = ({ value }: RegisterProps) => {
             {/* DONANTE */}
             <button
               type="button"
-              onClick={selectAccountType}
+              onClick={() => selectAccountType(ACCOUNT_TYPES[1])}
               disabled={isLoading}
               className={`rounded-xl border p-4 text-left transition-all
               ${

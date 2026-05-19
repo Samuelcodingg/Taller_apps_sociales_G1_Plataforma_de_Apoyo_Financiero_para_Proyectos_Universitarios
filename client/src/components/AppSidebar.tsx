@@ -28,6 +28,7 @@ import {
 import { useAuth } from "@/contexts/AuthProvider";
 import { SidebarOptions } from "@/types/sidebar";
 import {
+  ROLES,
   SIDEBAR_ACCOUNT,
   SIDEBAR_ADMIN,
   SIDEBAR_CREATOR,
@@ -82,7 +83,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         {/* Sección "Creador" */}
-        {user && user.role === "creator" && (
+        {user && user.role === ROLES[0] && (
           <SidebarGroup>
             <SidebarGroupLabel>Creador</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -90,7 +91,7 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
-        {user && user.role === "donor" && (
+        {user && user.role === ROLES[1] && (
           <SidebarGroup>
             <SidebarGroupLabel>Donador</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -108,7 +109,7 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
         {/* Sección "Admin" */}
-        {user && user.role === "admin" && (
+        {user && user.role === ROLES[2] && (
           <SidebarGroup>
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>

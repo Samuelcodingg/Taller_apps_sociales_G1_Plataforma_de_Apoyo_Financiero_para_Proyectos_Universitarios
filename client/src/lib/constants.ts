@@ -9,8 +9,10 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-export const ACCOUNT_TYPES = ["creator", "donor"] as const;
-export const ROLES = [...ACCOUNT_TYPES, "admin"] as const;
+export const BASE_SERVER_URL =
+  "https://ci811iju6g.execute-api.us-east-2.amazonaws.com";
+export const ACCOUNT_TYPES = ["CREATOR", "DONOR"] as const;
+export const ROLES = [...ACCOUNT_TYPES, "ADMIN"] as const;
 
 export const SIDEBAR_MAIN = [
   { title: "Inicio", url: "/", icon: Home },
@@ -30,7 +32,7 @@ export const SIDEBAR_DONOR = [
 ];
 
 export const SIDEBAR_ACCOUNT = [
-  { title: "Registro / Inicio de sesión", url: "/auth", icon: LogIn },
+  { title: "Registro / Inicio de sesión", url: "/register", icon: LogIn },
   // { title: "Iniciar sesión", url: "/login", icon: LogIn },
 ];
 

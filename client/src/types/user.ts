@@ -1,7 +1,7 @@
 import { ROLES } from "@/lib/constants";
 
 export type User = {
-  id: number;
+  id: string;
   name: string;
   role: Role;
   email: string;
@@ -9,4 +9,4 @@ export type User = {
 
 export type Role = (typeof ROLES)[number];
 
-export type AccountType = Exclude<Role, "admin">;
+export type AccountType = Exclude<Role, "ADMIN">;

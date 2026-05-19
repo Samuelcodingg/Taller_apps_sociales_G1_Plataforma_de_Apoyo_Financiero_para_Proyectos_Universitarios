@@ -2,7 +2,6 @@ import { AppLayout } from "@/components/AppLayout";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { GraduationCap } from "lucide-react";
-
 import Login from "./Login";
 import Register from "./Register";
 

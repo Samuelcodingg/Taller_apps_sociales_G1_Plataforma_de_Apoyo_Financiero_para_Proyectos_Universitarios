@@ -1,8 +1,9 @@
+import { BASE_SERVER_URL } from "@/lib/constants";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const apiSlice = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({ baseUrl: "" }),
+  baseQuery: fetchBaseQuery({ baseUrl: BASE_SERVER_URL }),
   endpoints: (builder) => ({
     // POST: Registrar un usuario
     registerUser: builder.mutation<{}, any>({

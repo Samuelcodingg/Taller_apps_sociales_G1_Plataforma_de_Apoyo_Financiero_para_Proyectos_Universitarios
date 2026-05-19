@@ -33,7 +33,7 @@ export const registerSchema = z
 
     // Validar correo institucional
     if (
-      data.accountType === "creator" &&
+      data.accountType === ACCOUNT_TYPES[0] &&
       !data.email.endsWith("@unmsm.edu.pe")
     ) {
       ctx.addIssue({

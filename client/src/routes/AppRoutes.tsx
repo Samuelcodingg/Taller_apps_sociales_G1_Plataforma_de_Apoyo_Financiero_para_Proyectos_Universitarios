@@ -14,6 +14,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "@/contexts/AuthProvider";
 import MyDonations from "@/pages/MyDonations";
 import Login from "@/pages/LoginPrueba";
+import { ROLES } from "@/lib/constants";
 
 const AppRoutes = () => {
   const { user } = useAuth();
@@ -21,9 +22,9 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/auth" element={<Auth />} />
+      <Route path="/register" element={<Auth />} />
       {/* No se está usando en otro lado a <Validacion /> */}
-      <Route path="/auth/validacion" element={<Validacion />} />
+      <Route path="/register/validation" element={<Validacion />} />
       <Route path="/login" element={<Login />} />
       <Route path="/explorar" element={<Explorar />} />
       <Route path="/tendencias" element={<Tendencias />} />
@@ -34,7 +35,7 @@ const AppRoutes = () => {
       {/* Rutas del usuario "creator" */}
       <Route
         element={
-          <ProtectedRoute isAllowed={!!user && user.role === "creator"} />
+          <ProtectedRoute isAllowed={!!user && user.role === ROLES[0]} />
         }
       >
         <Route path="/crear" element={<Crear />} />
@@ -42,13 +43,17 @@ const AppRoutes = () => {
       </Route>
       {/* Rutas del usuario "donor" */}
       <Route
-        element={<ProtectedRoute isAllowed={!!user && user.role === "donor"} />}
+        element={
+          <ProtectedRoute isAllowed={!!user && user.role === ROLES[1]} />
+        }
       >
         <Route path="/donations" element={<MyDonations />} />
       </Route>
       {/* Rutas del usuario "admin" */}
       <Route
-        element={<ProtectedRoute isAllowed={!!user && user.role === "admin"} />}
+        element={
+          <ProtectedRoute isAllowed={!!user && user.role === ROLES[2]} />
+        }
       >
         <Route path="/admin" element={<Admin />} />
       </Route>
