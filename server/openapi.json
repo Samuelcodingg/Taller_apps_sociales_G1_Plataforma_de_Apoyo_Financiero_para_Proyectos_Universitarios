@@ -1,14 +1,14 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Sembramos API",
+    "title": "Sembramos Auth API",
     "version": "1.0.0",
-    "description": "API for auth and health endpoints"
+    "description": "Auth microservice API"
   },
   "servers": [
     {
-      "url": "http://localhost:3000",
-      "description": "Local dev"
+      "url": "https://ci811iju6g.execute-api.us-east-2.amazonaws.com",
+      "description": "API Gateway"
     }
   ],
   "paths": {
@@ -31,6 +31,7 @@
     },
     "/api/auth/login": {
       "post": {
+        "tags": ["auth"],
         "summary": "Login",
         "requestBody": {
           "required": true,
@@ -88,6 +89,7 @@
     },
     "/api/auth/register/creator": {
       "post": {
+        "tags": ["auth"],
         "summary": "Register creator",
         "requestBody": {
           "required": true,
@@ -145,6 +147,7 @@
     },
     "/api/auth/register/donor": {
       "post": {
+        "tags": ["auth"],
         "summary": "Register donor",
         "requestBody": {
           "required": true,
@@ -202,6 +205,7 @@
     },
     "/api/auth/refresh-token": {
       "post": {
+        "tags": ["auth"],
         "summary": "Refresh token",
         "requestBody": {
           "required": true,
@@ -258,6 +262,12 @@
       }
     }
   },
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Authentication and token management"
+    }
+  ],
   "components": {
     "schemas": {
       "HealthResponse": {
