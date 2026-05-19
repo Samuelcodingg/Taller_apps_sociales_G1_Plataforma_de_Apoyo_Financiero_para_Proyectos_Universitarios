@@ -1,3 +1,5 @@
+import { ROLES } from "@/lib/constants";
+
 export type User = {
   id: number;
   name: string;
@@ -5,6 +7,6 @@ export type User = {
   email: string;
 } | null;
 
-export type Role = "creator" | "donor" | "admin";
+export type Role = (typeof ROLES)[number];
 
 export type AccountType = Exclude<Role, "admin">;

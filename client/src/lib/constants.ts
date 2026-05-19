@@ -9,6 +9,9 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+export const ACCOUNT_TYPES = ["creator", "donor"] as const;
+export const ROLES = [...ACCOUNT_TYPES, "admin"] as const;
+
 export const SIDEBAR_MAIN = [
   { title: "Inicio", url: "/", icon: Home },
   { title: "Explorar", url: "/explorar", icon: Search },

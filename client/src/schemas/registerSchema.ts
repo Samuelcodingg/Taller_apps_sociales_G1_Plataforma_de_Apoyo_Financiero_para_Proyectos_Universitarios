@@ -1,30 +1,47 @@
+import { ACCOUNT_TYPES } from "@/lib/constants";
 import { z } from "zod";
 
 export const registerSchema = z
   .object({
+    accountType: z.enum(ACCOUNT_TYPES),
     name: z.string().optional(),
     email: z
       .string({
-        invalid_type_error:
-          "El correo electrónico debe ser una cadena de texto",
         required_error: "El correo electrónico es requerido",
       })
       .email({ message: "El correo electrónico no es válido" }),
     password: z
       .string({
-        invalid_type_error: "La contraseña debe ser una cadena de texto",
         required_error: "La contraseña es requerida",
       })
-      .min(6, "Mínimo 6 caracteres"),
+      .min(6, {
+        message: "La contraseña debe tener como mínimo 6 caracteres",
+      }),
     confirmPassword: z.string({
-      invalid_type_error:
-        "La confirmación de contraseña debe ser una cadena de texto",
       required_error: "La confirmación de contraseña es requerida",
     }),
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Las contraseñas no coinciden",
-    path: ["confirmPassword"],
+  .superRefine((data, ctx) => {
+    // Validar contraseña
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["confirmPassword"],
+        message: "Las contraseñas no coinciden",
+      });
+    }
+
+    // Validar correo institucional
+    if (
+      data.accountType === "creator" &&
+      !data.email.endsWith("@unmsm.edu.pe")
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["email"],
+        message: "Debes usar un correo institucional de la UNMSM",
+      });
+    }
   });
 
 export type RegisterForm = z.infer<typeof registerSchema>;

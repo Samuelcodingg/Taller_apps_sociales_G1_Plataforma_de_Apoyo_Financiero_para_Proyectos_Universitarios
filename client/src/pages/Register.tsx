@@ -14,6 +14,7 @@ import { AlertCircle, GraduationCap, Heart, Loader2 } from "lucide-react";
 import { RegisterForm, registerSchema } from "@/schemas/registerSchema";
 import { AccountType } from "@/types/user";
 import GoogleIcon from "@/components/icons/GoogleIcon";
+import { ACCOUNT_TYPES } from "@/lib/constants";
 
 type RegisterProps = {
   value: string;
@@ -22,16 +23,18 @@ type RegisterProps = {
 const Register = ({ value }: RegisterProps) => {
   const navigate = useNavigate();
 
-  const [accountType, setAccountType] = useState<AccountType>("creator");
+  const [accountType, setAccountType] = useState<AccountType>(ACCOUNT_TYPES[0]);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setError,
+    setValue,
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      accountType: ACCOUNT_TYPES[0],
       name: "",
       email: "",
       password: "",
@@ -43,14 +46,11 @@ const Register = ({ value }: RegisterProps) => {
 
   const onSubmit: SubmitHandler<RegisterForm> = async (data) => {
     try {
-      const payload = {
-        ...data,
-        role: accountType,
-      };
+      console.log("Datos a enviar: ", data);
 
-      console.log(payload);
+      // const response = await registerUser(data).unwrap();
 
-      // await registerUser(payload).unwrap();
+      // console.log("Respuesta: ", response);
 
       toast.success("Registro exitoso");
 
@@ -64,6 +64,13 @@ const Register = ({ value }: RegisterProps) => {
     }
   };
 
+  const selectAccountType = () => {
+    const condition =
+      accountType === ACCOUNT_TYPES[0] ? ACCOUNT_TYPES[1] : ACCOUNT_TYPES[0];
+    setAccountType(condition);
+    setValue("accountType", condition);
+  };
+
   return (
     <TabsContent value={value} className="mt-6">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -75,11 +82,11 @@ const Register = ({ value }: RegisterProps) => {
             {/* ESTUDIANTE */}
             <button
               type="button"
-              onClick={() => setAccountType("creator")}
+              onClick={selectAccountType}
               disabled={isLoading}
               className={`rounded-xl border p-4 text-left transition-all
               ${
-                accountType === "creator"
+                accountType === ACCOUNT_TYPES[0]
                   ? "border-green-500 bg-green-50"
                   : "border-border hover:border-green-300"
               }`}
@@ -88,7 +95,7 @@ const Register = ({ value }: RegisterProps) => {
                 <GraduationCap
                   className={`h-5 w-5 mt-0.5
                   ${
-                    accountType === "creator"
+                    accountType === ACCOUNT_TYPES[0]
                       ? "text-green-600"
                       : "text-muted-foreground"
                   }`}
@@ -107,11 +114,11 @@ const Register = ({ value }: RegisterProps) => {
             {/* DONANTE */}
             <button
               type="button"
-              onClick={() => setAccountType("donor")}
+              onClick={selectAccountType}
               disabled={isLoading}
               className={`rounded-xl border p-4 text-left transition-all
               ${
-                accountType === "donor"
+                accountType === ACCOUNT_TYPES[1]
                   ? "border-orange-500 bg-orange-50"
                   : "border-border hover:border-orange-300"
               }`}
@@ -120,7 +127,7 @@ const Register = ({ value }: RegisterProps) => {
                 <Heart
                   className={`h-5 w-5 mt-0.5
                   ${
-                    accountType === "donor"
+                    accountType === ACCOUNT_TYPES[1]
                       ? "text-orange-500"
                       : "text-muted-foreground"
                   }`}
@@ -139,7 +146,7 @@ const Register = ({ value }: RegisterProps) => {
         </div>
 
         {/* INPUTS DINÁMICOS */}
-        {accountType === "creator" ? (
+        {accountType === ACCOUNT_TYPES[0] ? (
           <>
             {/* EMAIL UNIVERSITARIO */}
             <div className="space-y-2">
@@ -252,7 +259,7 @@ const Register = ({ value }: RegisterProps) => {
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               Creando cuenta...
             </>
-          ) : accountType === "creator" ? (
+          ) : accountType === ACCOUNT_TYPES[0] ? (
             "Crear cuenta y validar matrícula"
           ) : (
             "Crear cuenta"
@@ -266,7 +273,7 @@ const Register = ({ value }: RegisterProps) => {
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               Creando cuenta...
             </>
-          ) : accountType === "creator" ? (
+          ) : accountType === ACCOUNT_TYPES[0] ? (
             "Crear cuenta y validar matrícula"
           ) : (
             "Crear cuenta"
@@ -304,7 +311,7 @@ const Register = ({ value }: RegisterProps) => {
             <>
               <GoogleIcon />
 
-              {accountType === "creator"
+              {accountType === ACCOUNT_TYPES[0]
                 ? "Continuar con Google y validar matrícula"
                 : "Continuar con Google"}
             </>
