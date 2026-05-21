@@ -25,7 +25,6 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { useAuth } from "@/contexts/AuthProvider";
 import { SidebarOptions } from "@/types/sidebar";
 import {
   ROLES,
@@ -35,12 +34,16 @@ import {
   SIDEBAR_DONOR,
   SIDEBAR_MAIN,
 } from "@/lib/constants";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
+import { logout } from "@/slices/authSlice";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
-  const { user } = useAuth();
+  const dispatch = useDispatch<AppDispatch>();
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const isActive = (p: string) =>
     p === "/" ? pathname === "/" : pathname.startsWith(p);
@@ -56,6 +59,10 @@ export function AppSidebar() {
         </SidebarMenuButton>
       </SidebarMenuItem>
     ));
+
+  const logOut = () => {
+    dispatch(logout());
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -121,7 +128,10 @@ export function AppSidebar() {
       {user && (
         <SidebarFooter className="p-3">
           {
-            <div className="flex gap-3 items-center justify-center rounded-xl border bg-accent/50 p-3 text-sm text-accent-foreground cursor-pointer hover:bg-accent">
+            <div
+              className="flex gap-3 items-center justify-center rounded-xl border bg-accent/50 p-3 text-sm text-accent-foreground cursor-pointer hover:bg-accent"
+              onClick={logOut}
+            >
               <LogOut className="h-4 w-4" />
               {!collapsed && <span className="">Cerrar sesión</span>}
             </div>

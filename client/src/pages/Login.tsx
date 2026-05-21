@@ -1,16 +1,21 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TabsContent } from "@radix-ui/react-tabs";
-import { AlertCircle, CheckCircle2, Loader2, Mail } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginForm, loginSchema } from "@/schemas/loginSchema";
 import { useLoginUserMutation } from "@/slices/apiSlice";
 import { toast } from "sonner";
 import GoogleIcon from "@/components/icons/GoogleIcon";
+import { LoginRequest } from "@/types/auth";
+import { getErrorMessage } from "@/lib/getErrorMessage";
+import { AppDispatch } from "@/store/store";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "@/slices/authSlice";
 
 type LoginProps = {
   value: string;
@@ -22,7 +27,7 @@ const Login = ({ value }: LoginProps) => {
     handleSubmit,
     formState: { errors },
     reset,
-    setError,
+    // setError,
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -33,24 +38,34 @@ const Login = ({ value }: LoginProps) => {
   const navigate = useNavigate();
   const [loginUser, { data, isLoading, isError, error }] =
     useLoginUserMutation();
+  const dispatch = useDispatch<AppDispatch>();
 
-  const onSubmit: SubmitHandler<LoginForm> = async (data) => {
+  const onSubmit: SubmitHandler<LoginForm> = async (data: LoginRequest) => {
     try {
       console.log("Datos a enviar: ", data);
 
-      // const response = await loginUser(data).unwrap();
-      // console.log("Response: ", response);
+      const response = await loginUser(data).unwrap();
+      console.log("Response: ", response);
+
+      dispatch(
+        setCredentials({
+          user: response.user,
+          accessToken: response.accessToken,
+        }),
+      );
+
+      localStorage.setItem("refreshToken", response.refreshToken);
 
       toast.success("Inicio de sesión exitoso");
 
-      // navigate("/dashboard");
+      navigate("/");
     } catch (error) {
       console.error("Error: ", error);
 
       // Colocar esto o sino un toast.error
-      setError("root", {
-        message: error?.data?.message || "Correo o contraseña incorrectos",
-      });
+      toast.error(getErrorMessage(error));
+    } finally {
+      reset();
     }
   };
 
@@ -67,9 +82,6 @@ const Login = ({ value }: LoginProps) => {
             {...register("email")}
             required
           />
-          {/* <p className="text-xs text-muted-foreground">
-            Validamos que pertenezcas a una institución reconocida.
-          </p> */}
         </div>
         {errors.email && (
           <Alert variant="destructive">
@@ -93,21 +105,19 @@ const Login = ({ value }: LoginProps) => {
             {...register("password")}
             required
           />
-          {/* <p className="text-xs text-muted-foreground">
-            Validamos que pertenezcas a una institución reconocida.
-          </p> */}
+
           {errors.password && (
             <p className="text-sm text-red-500">{errors.password.message}</p>
           )}
         </div>
 
         {/* ERROR GENERAL */}
-        {errors.root && (
+        {/* {errors.root && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{errors.root.message}</AlertDescription>
           </Alert>
-        )}
+        )} */}
 
         {/* BOTÓN DE ENVÍO */}
         <Button type="submit" className="w-full" disabled={isLoading}>

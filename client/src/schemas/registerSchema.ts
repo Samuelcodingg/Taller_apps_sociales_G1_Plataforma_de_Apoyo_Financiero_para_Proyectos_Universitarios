@@ -4,7 +4,8 @@ import { z } from "zod";
 export const registerSchema = z
   .object({
     accountType: z.enum(ACCOUNT_TYPES),
-    name: z.string().optional(),
+    names: z.string().optional(),
+    lastNames: z.string().optional(),
     email: z
       .string({
         required_error: "El correo electrónico es requerido",
@@ -14,12 +15,13 @@ export const registerSchema = z
       .string({
         required_error: "La contraseña es requerida",
       })
-      .min(6, {
-        message: "La contraseña debe tener como mínimo 6 caracteres",
+      .min(8, {
+        message: "La contraseña debe tener como mínimo 8 caracteres",
       }),
     confirmPassword: z.string({
       required_error: "La confirmación de contraseña es requerida",
     }),
+    university: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     // Validar contraseña

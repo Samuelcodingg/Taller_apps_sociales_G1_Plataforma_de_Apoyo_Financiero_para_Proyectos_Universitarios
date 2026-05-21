@@ -11,21 +11,19 @@ import Tendencias from "@/pages/Tendencias";
 import Validacion from "@/pages/Validacion";
 import { Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
-import { useAuth } from "@/contexts/AuthProvider";
 import MyDonations from "@/pages/MyDonations";
-import Login from "@/pages/LoginPrueba";
 import { ROLES } from "@/lib/constants";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const user = useSelector((state: RootState) => state.auth.user);
 
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/register" element={<Auth />} />
-      {/* No se está usando en otro lado a <Validacion /> */}
-      <Route path="/register/validation" element={<Validacion />} />
-      <Route path="/login" element={<Login />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/auth/validation" element={<Validacion />} />
       <Route path="/explorar" element={<Explorar />} />
       <Route path="/tendencias" element={<Tendencias />} />
       <Route path="/campana/:id" element={<Campana />} />

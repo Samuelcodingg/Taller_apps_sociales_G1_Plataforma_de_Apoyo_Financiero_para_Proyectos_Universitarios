@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import {
   Upload,
   FileCheck2,
@@ -11,30 +10,114 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useRegisterUserMutation } from "@/slices/apiSlice";
+import {
+  useRegisterCreatorMutation,
+  useValidateStudentDocumentMutation,
+} from "@/slices/apiSlice";
 import { RegisterForm } from "@/schemas/registerSchema";
 
-type State = "idle" | "uploading" | "processing" | "ok" | "fail";
+type State = "idle" | "uploading" | "ok" | "fail";
 
 const Validacion = () => {
   const [state, setState] = useState<State>("idle");
-  const [progress, setProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [localValidationError, setLocalValidationError] = useState<
+    string | null
+  >(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const formData = location.state?.formData as RegisterForm | undefined;
-  const [registerUser, { isLoading }] = useRegisterUserMutation();
+
+  const [validateDocument, { data: validationData, error: validationError }] =
+    useValidateStudentDocumentMutation();
+  const [registerCreator, { isLoading }] = useRegisterCreatorMutation();
+
+  const startFileSelection = () => {
+    fileInputRef.current?.click();
+  };
+
+  const readFileAsBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result === "string") {
+          const base64 = result.split(",")[1] ?? "";
+          resolve(base64);
+        } else {
+          reject(new Error("No se pudo leer el archivo."));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const validatePdf = async (file: File) => {
+    if (!formData) return;
+
+    setState("uploading");
+    setLocalValidationError(null);
+
+    const fileBase64 = await readFileAsBase64(file);
+
+    try {
+      const result = await validateDocument({
+        email: formData.email,
+        fileName: file.name,
+        documentBase64: fileBase64,
+      }).unwrap();
+
+      setState(result.valid ? "ok" : "fail");
+
+      if (!result.valid) {
+        setLocalValidationError(
+          "El documento no pudo ser validado. Verifica que sea un carnet o constancia válido de la UNMSM.",
+        );
+      }
+    } catch (error) {
+      setState("fail");
+      const apiError = error as any;
+      setLocalValidationError(
+        apiError?.data?.message ||
+          "Error al validar el documento. Intenta nuevamente.",
+      );
+    }
+  };
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      setLocalValidationError("Solo se permite PDF.");
+      setState("fail");
+      return;
+    }
+
+    setSelectedFile(file);
+    await validatePdf(file);
+  };
+
+  const backToRegister = () => navigate("/auth", { state: { formData } });
 
   const handleRegister = async () => {
-    if (!formData) {
-      navigate("/register");
+    if (!formData || !validationData || !validationData.valid) {
       return;
     }
 
     try {
-      await registerUser(formData).unwrap();
+      // Envío de datos del Estudiante para su Registro -> Colocar en el type los datos exactos que se enviarán
+      // await registerCreator({
+      //   ...formData,
+      //   extractedName: validationData.extractedName,
+      //   extractedUniversity: validationData.extractedUniversity,
+      //   documentValidation: validationData,
+      // }).unwrap();
+
       toast.success("Registro completado");
       navigate("/perfil");
     } catch (error) {
@@ -44,28 +127,6 @@ const Validacion = () => {
       );
     }
   };
-
-  const startUpload = () => {
-    setState("uploading");
-    setProgress(0);
-    const tick = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(tick);
-          setState("processing");
-          setTimeout(
-            () => setState(Math.random() > 0.15 ? "ok" : "fail"),
-            1800,
-          );
-          return 100;
-        }
-        return p + 10;
-      });
-    }, 120);
-  };
-
-  // Dejar preparado la conexión al back
-  const handleDocumentValidation = () => {};
 
   useEffect(() => {
     if (!formData) {
@@ -79,18 +140,19 @@ const Validacion = () => {
         <div>
           <Badge
             className="bg-accent text-accent-foreground hover:bg-accent cursor-pointer"
-            onClick={() => navigate("/register", { state: { formData } })}
+            onClick={backToRegister}
           >
             Volver
           </Badge>
           <h1 className="text-3xl font-bold mt-2">Valida tu matrícula</h1>
           <p className="text-muted-foreground">
-            Sube tu carnet o constancia. Nuestro sistema de IA verificará tus
+            Sube tu reporte de matrícula. Nuestro sistema de IA verificará tus
             datos automáticamente.
           </p>
         </div>
 
         <Card className="p-6">
+          {/* Inicial */}
           {state === "idle" && (
             <div className="border-2 border-dashed rounded-2xl p-10 text-center space-y-4">
               <div className="h-14 w-14 rounded-2xl bg-accent grid place-items-center mx-auto">
@@ -98,37 +160,38 @@ const Validacion = () => {
               </div>
               <div>
                 <p className="font-semibold">Arrastra tu documento aquí</p>
-                <p className="text-xs text-muted-foreground">
-                  PDF, JPG o PNG · máx. 10MB
-                </p>
+                <p className="text-xs text-muted-foreground">PDF · máx. 10MB</p>
+                {selectedFile && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Archivo seleccionado: {selectedFile.name}
+                  </p>
+                )}
               </div>
               <Button
-                onClick={startUpload}
+                onClick={startFileSelection}
                 className="bg-gradient-warm shadow-warm"
               >
                 Seleccionar archivo
               </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </div>
           )}
 
           {state === "uploading" && (
-            <div className="space-y-3 py-6">
-              <div className="flex items-center gap-3">
-                <Upload className="h-5 w-5 text-primary" />
-                <span className="font-medium">Subiendo documento...</span>
-              </div>
-              <Progress value={progress} />
-            </div>
-          )}
-
-          {state === "processing" && (
             <div className="text-center py-10 space-y-3">
               <div className="h-14 w-14 rounded-2xl bg-gradient-warm grid place-items-center mx-auto animate-pulse">
                 <Sparkles className="h-7 w-7 text-primary-foreground" />
               </div>
-              <p className="font-semibold">Analizando con IA (OCR)…</p>
+              <p className="font-semibold">Validando documento...</p>
               <p className="text-sm text-muted-foreground">
-                Extrayendo nombre, universidad y vigencia
+                Esperando la respuesta del servidor. Esto depende del tiempo
+                real del backend.
               </p>
             </div>
           )}
@@ -144,16 +207,16 @@ const Validacion = () => {
               </div>
               <div className="bg-muted rounded-xl p-4 text-left text-sm space-y-1.5">
                 <div>
-                  <span className="text-muted-foreground">Nombre:</span> María
-                  Fernández
+                  <span className="text-muted-foreground">Nombre:</span>{" "}
+                  {validationData?.extractedName || "Usuario"}
                 </div>
                 <div>
                   <span className="text-muted-foreground">Universidad:</span>{" "}
-                  Universidad Nacional
+                  {validationData?.extractedUniversity || "UNMSM"}
                 </div>
                 <div>
                   <span className="text-muted-foreground">Vigencia:</span>{" "}
-                  2025-1 ✓
+                  {validationData?.isUnmsm ? "2026-1 ✓" : "No verificado"}
                 </div>
               </div>
               <Button
@@ -177,10 +240,19 @@ const Validacion = () => {
                   No pudimos validar el documento
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  El nombre no coincide con tu registro. Intenta nuevamente.
+                  {localValidationError ||
+                    (validationError as any)?.data?.message ||
+                    "El documento no coincide con tu registro. Intenta nuevamente."}
                 </p>
               </div>
-              <Button onClick={() => setState("idle")} variant="outline">
+              <Button
+                onClick={() => {
+                  setState("idle");
+                  setLocalValidationError(null);
+                  setSelectedFile(null);
+                }}
+                variant="outline"
+              >
                 Reintentar
               </Button>
             </div>

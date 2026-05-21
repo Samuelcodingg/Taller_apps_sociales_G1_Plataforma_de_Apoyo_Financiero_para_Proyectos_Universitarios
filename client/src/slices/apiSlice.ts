@@ -1,12 +1,49 @@
-import { BASE_SERVER_URL } from "@/lib/constants";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithReauth } from "@/services/baseQuery";
+import {
+  AuthResponse,
+  LoginRequest,
+  RefreshResponse,
+  RegisterCreatorRequest,
+  RegisterCreatorResponse,
+  RegisterDonorRequest,
+  RegisterDonorResponse,
+} from "@/types/auth";
+import {
+  ValidateStudentDocumentRequest,
+  ValidationResponse,
+} from "@/types/validation";
+import { createApi } from "@reduxjs/toolkit/query/react";
 
 export const apiSlice = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({ baseUrl: BASE_SERVER_URL }),
+  baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
-    // POST: Registrar un usuario
-    registerUser: builder.mutation<{}, any>({
+    registerCreator: builder.mutation<
+      RegisterCreatorResponse,
+      RegisterCreatorRequest
+    >({
+      query: (data) => ({
+        url: "/api/auth/register/creator",
+        method: "POST",
+        body: data,
+      }),
+    }),
+
+    registerDonor: builder.mutation<
+      RegisterDonorResponse,
+      RegisterDonorRequest
+    >({
+      query: (data) => ({
+        url: "/api/auth/register/donor",
+        method: "POST",
+        body: data,
+      }),
+    }),
+
+    validateStudentDocument: builder.mutation<
+      ValidationResponse,
+      ValidateStudentDocumentRequest
+    >({
       query: (data) => ({
         url: "",
         method: "POST",
@@ -14,10 +51,18 @@ export const apiSlice = createApi({
       }),
     }),
 
-    // POST: Iniciar sesión
-    loginUser: builder.mutation<{}, any>({
+    // Probar esto -> Ya cree un usuario "DONOR" donador@gmail.com | 123456
+    loginUser: builder.mutation<AuthResponse, LoginRequest>({
       query: (data) => ({
-        url: "",
+        url: "/api/auth/login",
+        method: "POST",
+        body: data,
+      }),
+    }),
+
+    refreshToken: builder.mutation<RefreshResponse, { refreshToken: string }>({
+      query: (data) => ({
+        url: "/api/auth/refresh",
         method: "POST",
         body: data,
       }),
@@ -25,4 +70,10 @@ export const apiSlice = createApi({
   }),
 });
 
-export const { useRegisterUserMutation, useLoginUserMutation } = apiSlice;
+export const {
+  useRegisterCreatorMutation,
+  useRegisterDonorMutation,
+  useValidateStudentDocumentMutation,
+  useLoginUserMutation,
+  useRefreshTokenMutation,
+} = apiSlice;

@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { useRegisterUserMutation } from "@/slices/apiSlice";
+import { useRegisterDonorMutation } from "@/slices/apiSlice";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TabsContent } from "@radix-ui/react-tabs";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,58 +14,93 @@ import { RegisterForm, registerSchema } from "@/schemas/registerSchema";
 import { AccountType } from "@/types/user";
 import GoogleIcon from "@/components/icons/GoogleIcon";
 import { ACCOUNT_TYPES } from "@/lib/constants";
+import { RegisterCreatorRequest, RegisterDonorRequest } from "@/types/auth";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store/store";
+import { setCredentials } from "@/slices/authSlice";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 type RegisterProps = {
   value: string;
 };
 
 const Register = ({ value }: RegisterProps) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [accountType, setAccountType] = useState<AccountType>(ACCOUNT_TYPES[0]);
-
   const {
     register,
     handleSubmit,
     formState: { errors },
     setError,
     setValue,
+    reset,
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       accountType: ACCOUNT_TYPES[0],
-      name: "",
+      names: "",
+      lastNames: "",
       email: "",
       password: "",
       confirmPassword: "",
     },
   });
+  const [registerDonor, { isLoading }] = useRegisterDonorMutation();
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [accountType, setAccountType] = useState<AccountType>(ACCOUNT_TYPES[0]);
 
   const formData = location.state?.formData as RegisterForm | undefined;
-
-  const [registerUser, { isLoading }] = useRegisterUserMutation();
 
   const onSubmit: SubmitHandler<RegisterForm> = async (data) => {
     try {
       if (data.accountType === ACCOUNT_TYPES[0]) {
-        navigate("/register/validation", {
-          state: { formData: data },
+        const creatorData: RegisterCreatorRequest = {
+          accountType: data.accountType,
+          names: data.names,
+          email: data.email,
+          password: data.password,
+          university: data.university,
+        };
+
+        navigate("/auth/validation", {
+          state: { formData: creatorData },
         });
         return;
       }
 
-      // const response = await registerUser(data).unwrap();
-      // console.log("Respuesta: ", response);
+      const donorData: RegisterDonorRequest = {
+        accountType: data.accountType,
+        names: data.names,
+        lastNames: data.lastNames,
+        email: data.email,
+        password: data.password,
+      };
+
+      const response = await registerDonor(donorData).unwrap();
+
+      console.log("Respuesta: ", response);
+
+      dispatch(
+        setCredentials({
+          user: response.user,
+          accessToken: response.accessToken,
+        }),
+      );
+
+      localStorage.setItem("refreshToken", response.refreshToken);
 
       toast.success("Registro exitoso");
-      // navigate("/perfil");
+
+      navigate("/perfil");
     } catch (error) {
       console.error("Error: ", error);
 
       // Esto se puede cambiar por un toast - El componente Alert de abajo se quitaría
       setError("root", {
-        message: error?.data?.message || "Ocurrió un error al registrarse",
+        message: getErrorMessage(error),
       });
+    } finally {
+      reset();
     }
   };
 
@@ -80,7 +114,8 @@ const Register = ({ value }: RegisterProps) => {
 
     setAccountType(formData.accountType);
     setValue("accountType", formData.accountType);
-    setValue("name", formData.name ?? "");
+    setValue("names", formData.names ?? "");
+    setValue("lastNames", formData.lastNames ?? "");
     setValue("email", formData.email);
     setValue("password", formData.password);
     setValue("confirmPassword", formData.confirmPassword);
@@ -160,33 +195,9 @@ const Register = ({ value }: RegisterProps) => {
           </div>
         </div>
 
-        {/* INPUTS DINÁMICOS */}
-        {accountType === ACCOUNT_TYPES[0] ? (
+        {/* NOMBRE */}
+        {accountType === ACCOUNT_TYPES[1] && (
           <>
-            {/* EMAIL UNIVERSITARIO */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Correo universitario</Label>
-
-              <Input
-                id="email"
-                type="email"
-                placeholder="tu.correo@unmsm.edu.pe"
-                disabled={isLoading}
-                {...register("email")}
-              />
-
-              <p className="text-xs text-muted-foreground">
-                Debe pertenecer a un dominio institucional
-              </p>
-
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            {/* NOMBRE */}
             <div className="space-y-2">
               <Label htmlFor="name">Nombres</Label>
 
@@ -195,32 +206,62 @@ const Register = ({ value }: RegisterProps) => {
                 type="text"
                 disabled={isLoading}
                 placeholder="Ingresa tus nombres"
-                {...register("name")}
+                {...register("names")}
               />
 
-              {errors.name && (
-                <p className="text-sm text-red-500">{errors.name.message}</p>
+              {errors.names && (
+                <p className="text-sm text-red-500">{errors.names.message}</p>
               )}
             </div>
 
-            {/* EMAIL */}
             <div className="space-y-2">
-              <Label htmlFor="email">Correo</Label>
+              <Label htmlFor="lastNames">Apellidos</Label>
 
               <Input
-                id="email"
-                type="email"
-                placeholder="tu.correo@gmail.com"
+                id="lastNames"
+                type="text"
                 disabled={isLoading}
-                {...register("email")}
+                placeholder="Ingresa tus apellidos"
+                {...register("lastNames")}
               />
 
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
+              {errors.lastNames && (
+                <p className="text-sm text-red-500">
+                  {errors.lastNames.message}
+                </p>
               )}
             </div>
           </>
         )}
+
+        {/* CORREO - CORREO UNIVERSITARIO */}
+        <div className="space-y-2">
+          <Label htmlFor="email">
+            {accountType === ACCOUNT_TYPES[0]
+              ? "Correo universitario"
+              : "Correo"}
+          </Label>
+
+          <Input
+            id="email"
+            type="email"
+            placeholder={
+              accountType === ACCOUNT_TYPES[0]
+                ? "tu.correo@unmsm.edu.pe"
+                : "tu.correo@gmail.com"
+            }
+            disabled={isLoading}
+            {...register("email")}
+          />
+
+          <p className="text-xs text-muted-foreground">
+            Debe pertenecer a un dominio institucional
+          </p>
+
+          {errors.email && (
+            <p className="text-sm text-red-500">{errors.email.message}</p>
+          )}
+        </div>
 
         {/* PASSWORD */}
         <div className="space-y-2">

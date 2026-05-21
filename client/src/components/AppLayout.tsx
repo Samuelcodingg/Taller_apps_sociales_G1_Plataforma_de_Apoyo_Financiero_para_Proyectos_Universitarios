@@ -3,10 +3,11 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Bell } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useAuth } from "@/contexts/AuthProvider";
+import { RootState } from "@/store/store";
+import { useSelector } from "react-redux";
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const user = useSelector((state: RootState) => state.auth.user);
 
   return (
     <SidebarProvider>
