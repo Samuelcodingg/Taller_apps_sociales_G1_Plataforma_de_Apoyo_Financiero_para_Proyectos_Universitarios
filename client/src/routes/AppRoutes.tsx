@@ -11,30 +11,29 @@ import Tendencias from "@/pages/Tendencias";
 import Validacion from "@/pages/Validacion";
 import { Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
-import { useAuth } from "@/contexts/AuthProvider";
-import Login from "@/pages/Login";
 import MyDonations from "@/pages/MyDonations";
+import { ROLES } from "@/lib/constants";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const user = useSelector((state: RootState) => state.auth.user);
 
   return (
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
-      {/* No se está usando en otro lado a <Validacion /> */}
-      <Route path="/auth/validacion" element={<Validacion />} />
-      <Route path="/login" element={<Login />} />
+      <Route path="/auth/validation" element={<Validacion />} />
       <Route path="/explorar" element={<Explorar />} />
       <Route path="/tendencias" element={<Tendencias />} />
       <Route path="/campana/:id" element={<Campana />} />
       <Route element={<ProtectedRoute isAllowed={!!user} />}>
-        <Route path="/perfil" element={<Perfil />} />
+        <Route path="/profile" element={<Perfil />} />
       </Route>
       {/* Rutas del usuario "creator" */}
       <Route
         element={
-          <ProtectedRoute isAllowed={!!user && user.rol === "creator"} />
+          <ProtectedRoute isAllowed={!!user && user.role === ROLES[0]} />
         }
       >
         <Route path="/crear" element={<Crear />} />
@@ -42,13 +41,17 @@ const AppRoutes = () => {
       </Route>
       {/* Rutas del usuario "donor" */}
       <Route
-        element={<ProtectedRoute isAllowed={!!user && user.rol === "donor"} />}
+        element={
+          <ProtectedRoute isAllowed={!!user && user.role === ROLES[1]} />
+        }
       >
         <Route path="/donations" element={<MyDonations />} />
       </Route>
       {/* Rutas del usuario "admin" */}
       <Route
-        element={<ProtectedRoute isAllowed={!!user && user.rol === "admin"} />}
+        element={
+          <ProtectedRoute isAllowed={!!user && user.role === ROLES[2]} />
+        }
       >
         <Route path="/admin" element={<Admin />} />
       </Route>

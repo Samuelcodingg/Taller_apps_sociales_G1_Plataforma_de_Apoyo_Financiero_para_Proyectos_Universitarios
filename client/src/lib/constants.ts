@@ -9,6 +9,11 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+export const BASE_SERVER_URL =
+  "https://ci811iju6g.execute-api.us-east-2.amazonaws.com";
+export const ACCOUNT_TYPES = ["CREATOR", "DONOR"] as const;
+export const ROLES = [...ACCOUNT_TYPES, "ADMIN"] as const;
+
 export const SIDEBAR_MAIN = [
   { title: "Inicio", url: "/", icon: Home },
   { title: "Explorar", url: "/explorar", icon: Search },
@@ -18,17 +23,17 @@ export const SIDEBAR_MAIN = [
 export const SIDEBAR_CREATOR = [
   { title: "Crear campaña", url: "/crear", icon: PlusCircle },
   { title: "Mi panel", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Mi perfil", url: "/perfil", icon: User },
+  { title: "Mi perfil", url: "/profile", icon: User },
 ];
 
 export const SIDEBAR_DONOR = [
   { title: "Mis donaciones", url: "/donations", icon: LayoutDashboard },
-  { title: "Mi perfil", url: "/perfil", icon: User },
+  { title: "Mi perfil", url: "/profile", icon: User },
 ];
 
 export const SIDEBAR_ACCOUNT = [
-  { title: "Registrarse", url: "/auth", icon: LogIn },
-  { title: "Iniciar sesión", url: "/login", icon: LogIn },
+  { title: "Registro / Inicio de sesión", url: "/auth", icon: LogIn },
+  // { title: "Iniciar sesión", url: "/login", icon: LogIn },
 ];
 
 export const SIDEBAR_ADMIN = [

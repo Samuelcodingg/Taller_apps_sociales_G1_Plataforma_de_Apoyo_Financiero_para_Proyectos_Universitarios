@@ -1,104 +1,164 @@
-import { useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Upload, FileCheck2, Sparkles, ShieldCheck, RefreshCw } from "lucide-react";
+import { Upload, FileCheck2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
-
-type State = "idle" | "uploading" | "processing" | "ok" | "fail";
+import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useRegisterCreatorMutation } from "@/slices/apiSlice";
+import { RegisterCreatorRequest } from "@/types/auth";
+import { setCredentials } from "@/slices/authSlice";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store/store";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 const Validacion = () => {
-  const [state, setState] = useState<State>("idle");
-  const [progress, setProgress] = useState(0);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useDispatch<AppDispatch>();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const startUpload = () => {
-    setState("uploading");
-    setProgress(0);
-    const tick = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(tick);
-          setState("processing");
-          setTimeout(() => setState(Math.random() > 0.15 ? "ok" : "fail"), 1800);
-          return 100;
-        }
-        return p + 10;
-      });
-    }, 120);
+  const creatorData = location.state?.creatorData as
+    | Omit<RegisterCreatorRequest, "document">
+    | undefined;
+
+  const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const [registerCreator, { isLoading }] = useRegisterCreatorMutation();
+
+  const startFileSelection = () => {
+    fileInputRef.current?.click();
   };
+
+  const backToRegister = () => {
+    navigate("/auth", {
+      state: {
+        formData: creatorData,
+      },
+    });
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+
+    if (!selected) return;
+
+    if (selected.type !== "application/pdf") {
+      setError("Solo se permite PDF");
+      return;
+    }
+
+    console.log("Hasta antes del envío se tienen estos datos: ", {
+      ...creatorData,
+      document: selected,
+    });
+
+    setFile(selected);
+    setError(null);
+  };
+
+  const handleRegister = async () => {
+    if (!creatorData || !file) {
+      setError("Falta información o archivo PDF");
+      return;
+    }
+
+    try {
+      setError(null);
+
+      const response = await registerCreator({
+        ...creatorData,
+        document: file,
+      }).unwrap();
+
+      dispatch(
+        setCredentials({
+          user: response.user,
+          accessToken: response.accessToken,
+        }),
+      );
+
+      console.log("Se enviaron estos datos: ", {
+        ...creatorData,
+        document: file,
+      });
+
+      localStorage.setItem("refreshToken", response.refreshToken);
+
+      toast.success("Registro completado");
+
+      navigate("/");
+    } catch (error) {
+      console.error("Error: ", error);
+
+      toast.error(getErrorMessage(error));
+      setError(error?.data?.message || "Error al registrar usuario");
+    }
+  };
+
+  useEffect(() => {
+    if (!creatorData) {
+      navigate("/register");
+    }
+  }, [creatorData, navigate]);
 
   return (
     <AppLayout>
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <Badge className="bg-accent text-accent-foreground hover:bg-accent">Paso 2 de 2</Badge>
-          <h1 className="text-3xl font-bold mt-2">Valida tu matrícula</h1>
-          <p className="text-muted-foreground">Sube tu carnet o constancia. Nuestro sistema de IA verificará tus datos automáticamente.</p>
+          <Badge className="cursor-pointer" onClick={backToRegister}>
+            Volver
+          </Badge>
+
+          <h1 className="text-3xl font-bold mt-2">Validación de matrícula</h1>
+
+          <p className="text-muted-foreground">
+            Sube tu PDF para completar el registro.
+          </p>
         </div>
 
         <Card className="p-6">
-          {state === "idle" && (
-            <div className="border-2 border-dashed rounded-2xl p-10 text-center space-y-4">
-              <div className="h-14 w-14 rounded-2xl bg-accent grid place-items-center mx-auto">
-                <Upload className="h-7 w-7 text-secondary" />
-              </div>
-              <div>
-                <p className="font-semibold">Arrastra tu documento aquí</p>
-                <p className="text-xs text-muted-foreground">PDF, JPG o PNG · máx. 10MB</p>
-              </div>
-              <Button onClick={startUpload} className="bg-gradient-warm shadow-warm">Seleccionar archivo</Button>
-            </div>
-          )}
+          <div className="border-2 border-dashed rounded-2xl p-10 text-center space-y-4">
+            <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
 
-          {state === "uploading" && (
-            <div className="space-y-3 py-6">
-              <div className="flex items-center gap-3"><Upload className="h-5 w-5 text-primary" /><span className="font-medium">Subiendo documento...</span></div>
-              <Progress value={progress} />
-            </div>
-          )}
+            <p className="font-medium">
+              {file ? file.name : "Sube tu PDF de matrícula"}
+            </p>
 
-          {state === "processing" && (
-            <div className="text-center py-10 space-y-3">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-warm grid place-items-center mx-auto animate-pulse">
-                <Sparkles className="h-7 w-7 text-primary-foreground" />
-              </div>
-              <p className="font-semibold">Analizando con IA (OCR)…</p>
-              <p className="text-sm text-muted-foreground">Extrayendo nombre, universidad y vigencia</p>
-            </div>
-          )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handleFileChange}
+            />
 
-          {state === "ok" && (
-            <div className="text-center py-8 space-y-4">
-              <ShieldCheck className="h-14 w-14 text-secondary mx-auto" />
-              <div>
-                <h3 className="text-xl font-semibold">¡Cuenta verificada!</h3>
-                <p className="text-sm text-muted-foreground">Datos validados correctamente.</p>
-              </div>
-              <div className="bg-muted rounded-xl p-4 text-left text-sm space-y-1.5">
-                <div><span className="text-muted-foreground">Nombre:</span> María Fernández</div>
-                <div><span className="text-muted-foreground">Universidad:</span> Universidad Nacional</div>
-                <div><span className="text-muted-foreground">Vigencia:</span> 2025-1 ✓</div>
-              </div>
-              <Button asChild className="w-full bg-gradient-warm shadow-warm">
-                <Link to="/perfil"><FileCheck2 className="h-4 w-4 mr-2" />Ir a mi perfil</Link>
-              </Button>
-            </div>
-          )}
+            <Button onClick={startFileSelection} variant="outline">
+              Seleccionar archivo
+            </Button>
+          </div>
 
-          {state === "fail" && (
-            <div className="text-center py-8 space-y-4">
-              <div className="h-14 w-14 rounded-2xl bg-destructive/10 text-destructive grid place-items-center mx-auto">
-                <RefreshCw className="h-7 w-7" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">No pudimos validar el documento</h3>
-                <p className="text-sm text-muted-foreground">El nombre no coincide con tu registro. Intenta nuevamente.</p>
-              </div>
-              <Button onClick={() => setState("idle")} variant="outline">Reintentar</Button>
-            </div>
-          )}
+          {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
+
+          <Button
+            className="w-full mt-6"
+            disabled={isLoading || !file}
+            onClick={handleRegister}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                Registrando...
+              </>
+            ) : (
+              <>
+                <FileCheck2 className="mr-2 h-4 w-4" />
+                Completar registro
+              </>
+            )}
+          </Button>
         </Card>
       </div>
     </AppLayout>

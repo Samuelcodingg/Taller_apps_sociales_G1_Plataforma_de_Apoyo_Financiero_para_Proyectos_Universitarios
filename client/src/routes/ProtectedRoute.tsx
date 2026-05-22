@@ -1,4 +1,3 @@
-// import { useAuth } from "@/contexts/AuthProvider";
 import { Navigate, Outlet } from "react-router-dom";
 
 type ProtectedRouteProps = {
@@ -12,8 +11,6 @@ const ProtectedRoute = ({
   isAllowed,
   redirectTo = "/",
 }: ProtectedRouteProps) => {
-  // const { user } = useAuth();
-
   if (!isAllowed) {
     return <Navigate to={redirectTo} />;
   }
