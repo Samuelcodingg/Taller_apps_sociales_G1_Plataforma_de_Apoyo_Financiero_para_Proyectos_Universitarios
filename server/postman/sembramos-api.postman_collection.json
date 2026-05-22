@@ -1,0 +1,232 @@
+{
+  "info": {
+    "name": "Sembramos API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Health response has status OK', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.property('status', 'OK');",
+              "});",
+              "",
+              "pm.test('Response time is under 2000ms', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Register Creator",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{creatorEmail}}\",\n  \"password\": \"{{creatorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/auth/register/creator"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response returns user and tokens', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.property('user');",
+              "  pm.expect(body).to.have.property('accessToken');",
+              "  pm.expect(body).to.have.property('refreshToken');",
+              "});",
+              "",
+              "pm.test('Store auth tokens', function () {",
+              "  const body = pm.response.json();",
+              "  pm.environment.set('accessToken', body.accessToken);",
+              "  pm.environment.set('refreshToken', body.refreshToken);",
+              "  pm.environment.set('creatorId', body.user && body.user.id ? body.user.id : '');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Register Donor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{donorEmail}}\",\n  \"password\": \"{{donorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/auth/register/donor"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response returns user and tokens', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.property('user');",
+              "  pm.expect(body).to.have.property('accessToken');",
+              "  pm.expect(body).to.have.property('refreshToken');",
+              "});",
+              "",
+              "pm.test('Store auth tokens', function () {",
+              "  const body = pm.response.json();",
+              "  pm.environment.set('accessToken', body.accessToken);",
+              "  pm.environment.set('refreshToken', body.refreshToken);",
+              "  pm.environment.set('donorId', body.user && body.user.id ? body.user.id : '');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{creatorEmail}}\",\n  \"password\": \"{{creatorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response returns user and tokens', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.property('user');",
+              "  pm.expect(body).to.have.property('accessToken');",
+              "  pm.expect(body).to.have.property('refreshToken');",
+              "});",
+              "",
+              "pm.test('Store auth tokens', function () {",
+              "  const body = pm.response.json();",
+              "  pm.environment.set('accessToken', body.accessToken);",
+              "  pm.environment.set('refreshToken', body.refreshToken);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Refresh Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/auth/refresh-token"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response returns user and tokens', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.property('user');",
+              "  pm.expect(body).to.have.property('accessToken');",
+              "  pm.expect(body).to.have.property('refreshToken');",
+              "});",
+              "",
+              "pm.test('Store auth tokens', function () {",
+              "  const body = pm.response.json();",
+              "  pm.environment.set('accessToken', body.accessToken);",
+              "  pm.environment.set('refreshToken', body.refreshToken);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
