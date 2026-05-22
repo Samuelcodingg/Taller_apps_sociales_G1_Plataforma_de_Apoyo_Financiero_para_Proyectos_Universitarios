@@ -21,7 +21,6 @@ export const apiSlice = createApi({
       query: (data) => {
         const formData = new FormData();
 
-        formData.append("names", data.names);
         formData.append("email", data.email);
         formData.append("password", data.password);
         formData.append("accountType", data.accountType);

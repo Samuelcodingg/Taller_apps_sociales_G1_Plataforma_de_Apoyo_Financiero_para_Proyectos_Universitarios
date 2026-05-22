@@ -46,7 +46,6 @@ export type RegisterDonorResponse = {
 
 export type RegisterCreatorRequest = {
   accountType: AccountType;
-  names: string;
   email: string;
   password: string;
   document: File;

@@ -54,12 +54,11 @@ const Register = ({ value }: RegisterProps) => {
   const onSubmit: SubmitHandler<RegisterForm> = async (data) => {
     try {
       if (data.accountType === ACCOUNT_TYPES[0]) {
-        const creatorData: Omit<RegisterCreatorRequest, "document" | "names"> =
-          {
-            accountType: data.accountType,
-            email: data.email,
-            password: data.password,
-          };
+        const creatorData: Omit<RegisterCreatorRequest, "document"> = {
+          accountType: data.accountType,
+          email: data.email,
+          password: data.password,
+        };
 
         navigate("/auth/validation", {
           state: { creatorData },
