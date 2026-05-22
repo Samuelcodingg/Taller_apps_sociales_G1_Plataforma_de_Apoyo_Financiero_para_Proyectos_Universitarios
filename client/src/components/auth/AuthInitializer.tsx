@@ -3,6 +3,7 @@ import { useRefreshTokenMutation } from "@/slices/apiSlice";
 import { setCredentials } from "@/slices/authSlice";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/store/store";
+import AuthLoading from "./AuthLoading";
 
 type AuthInitializerProps = {
   children: React.ReactNode;
@@ -45,7 +46,7 @@ const AuthInitializer = ({ children }: AuthInitializerProps) => {
   }, []);
 
   if (isLoading) {
-    return <div>Cargando...</div>;
+    return <AuthLoading />;
   }
 
   return children;
