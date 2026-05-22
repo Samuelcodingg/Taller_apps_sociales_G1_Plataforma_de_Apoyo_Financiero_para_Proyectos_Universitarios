@@ -23,12 +23,12 @@ export const SIDEBAR_MAIN = [
 export const SIDEBAR_CREATOR = [
   { title: "Crear campaña", url: "/crear", icon: PlusCircle },
   { title: "Mi panel", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Mi perfil", url: "/perfil", icon: User },
+  { title: "Mi perfil", url: "/profile", icon: User },
 ];
 
 export const SIDEBAR_DONOR = [
   { title: "Mis donaciones", url: "/donations", icon: LayoutDashboard },
-  { title: "Mi perfil", url: "/perfil", icon: User },
+  { title: "Mi perfil", url: "/profile", icon: User },
 ];
 
 export const SIDEBAR_ACCOUNT = [

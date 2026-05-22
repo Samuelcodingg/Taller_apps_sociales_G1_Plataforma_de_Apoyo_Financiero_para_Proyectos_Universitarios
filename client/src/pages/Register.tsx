@@ -54,16 +54,15 @@ const Register = ({ value }: RegisterProps) => {
   const onSubmit: SubmitHandler<RegisterForm> = async (data) => {
     try {
       if (data.accountType === ACCOUNT_TYPES[0]) {
-        const creatorData: RegisterCreatorRequest = {
-          accountType: data.accountType,
-          names: data.names,
-          email: data.email,
-          password: data.password,
-          university: data.university,
-        };
+        const creatorData: Omit<RegisterCreatorRequest, "document" | "names"> =
+          {
+            accountType: data.accountType,
+            email: data.email,
+            password: data.password,
+          };
 
         navigate("/auth/validation", {
-          state: { formData: creatorData },
+          state: { creatorData },
         });
         return;
       }
@@ -91,14 +90,12 @@ const Register = ({ value }: RegisterProps) => {
 
       toast.success("Registro exitoso");
 
-      navigate("/perfil");
+      navigate("/profile");
     } catch (error) {
       console.error("Error: ", error);
 
-      // Esto se puede cambiar por un toast - El componente Alert de abajo se quitaría
-      setError("root", {
-        message: getErrorMessage(error),
-      });
+      // Colocar esto o sino un toast.error
+      toast.error(getErrorMessage(error));
     } finally {
       reset();
     }
@@ -299,29 +296,6 @@ const Register = ({ value }: RegisterProps) => {
           )}
         </div>
 
-        {/* ERROR GENERAL */}
-        {errors.root && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-
-            <AlertDescription>{errors.root.message}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* BOTÓN PRINCIPAL (SIN GOOGLE)*/}
-        {/* <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Creando cuenta...
-            </>
-          ) : accountType === ACCOUNT_TYPES[0] ? (
-            "Crear cuenta y validar matrícula"
-          ) : (
-            "Crear cuenta"
-          )}
-        </Button> */}
-
         {/* BOTÓN PRINCIPAL (CON GOOGLE) */}
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? (
@@ -343,6 +317,7 @@ const Register = ({ value }: RegisterProps) => {
           <hr className="w-full" />
         </div>
 
+        {/* Cambiar el isLoading por otro que sea propio del Registro con Google */}
         {/* GOOGLE */}
         <Button
           type="button"
@@ -351,11 +326,6 @@ const Register = ({ value }: RegisterProps) => {
           disabled={isLoading}
           onClick={() => {
             toast.success("Conectado con Google");
-
-            // Aquí luego iría el auth real
-            // signInWithGoogle()
-
-            // navigate("/dashboard");
           }}
         >
           {isLoading ? (

@@ -21,7 +21,6 @@ export const registerSchema = z
     confirmPassword: z.string({
       required_error: "La confirmación de contraseña es requerida",
     }),
-    university: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     // Validar contraseña

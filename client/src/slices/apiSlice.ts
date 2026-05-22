@@ -8,10 +8,6 @@ import {
   RegisterDonorRequest,
   RegisterDonorResponse,
 } from "@/types/auth";
-import {
-  ValidateStudentDocumentRequest,
-  ValidationResponse,
-} from "@/types/validation";
 import { createApi } from "@reduxjs/toolkit/query/react";
 
 export const apiSlice = createApi({
@@ -22,11 +18,21 @@ export const apiSlice = createApi({
       RegisterCreatorResponse,
       RegisterCreatorRequest
     >({
-      query: (data) => ({
-        url: "/api/auth/register/creator",
-        method: "POST",
-        body: data,
-      }),
+      query: (data) => {
+        const formData = new FormData();
+
+        formData.append("names", data.names);
+        formData.append("email", data.email);
+        formData.append("password", data.password);
+        formData.append("accountType", data.accountType);
+        formData.append("document", data.document);
+
+        return {
+          url: "/api/auth/register/creator",
+          method: "POST",
+          body: formData,
+        };
+      },
     }),
 
     registerDonor: builder.mutation<
@@ -40,18 +46,6 @@ export const apiSlice = createApi({
       }),
     }),
 
-    validateStudentDocument: builder.mutation<
-      ValidationResponse,
-      ValidateStudentDocumentRequest
-    >({
-      query: (data) => ({
-        url: "",
-        method: "POST",
-        body: data,
-      }),
-    }),
-
-    // Probar esto -> Ya cree un usuario "DONOR" donador@gmail.com | 123456
     loginUser: builder.mutation<AuthResponse, LoginRequest>({
       query: (data) => ({
         url: "/api/auth/login",
@@ -73,7 +67,6 @@ export const apiSlice = createApi({
 export const {
   useRegisterCreatorMutation,
   useRegisterDonorMutation,
-  useValidateStudentDocumentMutation,
   useLoginUserMutation,
   useRefreshTokenMutation,
 } = apiSlice;

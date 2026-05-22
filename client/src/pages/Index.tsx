@@ -6,11 +6,16 @@ import { CampaignCard } from "@/components/CampaignCard";
 import { campaigns } from "@/lib/mock-data";
 import { ArrowRight, Sparkles, Heart, GraduationCap } from "lucide-react";
 import hero from "@/assets/hero.jpg";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
 
 const Index = () => {
+  const user = useSelector((state: RootState) => state.auth.user);
+
   const trending = [...campaigns]
     .sort((a, b) => b.trending - a.trending)
     .slice(0, 3);
+
   return (
     <AppLayout>
       <section className="relative overflow-hidden rounded-3xl border bg-card shadow-soft mb-10">
@@ -40,7 +45,9 @@ const Index = () => {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link to="/register">Crear cuenta</Link>
+                <Link to={!!user ? "/profile" : "/auth"}>
+                  {!!user ? "Ir al perfil" : "Crear cuenta"}
+                </Link>
               </Button>
             </div>
             <div className="flex items-center gap-6 pt-2 text-sm text-muted-foreground">

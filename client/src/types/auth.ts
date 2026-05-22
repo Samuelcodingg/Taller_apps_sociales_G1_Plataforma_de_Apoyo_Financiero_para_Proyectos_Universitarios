@@ -49,7 +49,7 @@ export type RegisterCreatorRequest = {
   names: string;
   email: string;
   password: string;
-  university: string;
+  document: File;
 };
 
 export type RegisterCreatorResponse = {

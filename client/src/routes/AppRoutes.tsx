@@ -28,7 +28,7 @@ const AppRoutes = () => {
       <Route path="/tendencias" element={<Tendencias />} />
       <Route path="/campana/:id" element={<Campana />} />
       <Route element={<ProtectedRoute isAllowed={!!user} />}>
-        <Route path="/perfil" element={<Perfil />} />
+        <Route path="/profile" element={<Perfil />} />
       </Route>
       {/* Rutas del usuario "creator" */}
       <Route

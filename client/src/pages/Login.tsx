@@ -143,7 +143,7 @@ const Login = ({ value }: LoginProps) => {
           className="w-full"
           onClick={() => {
             toast.success("Conectado con Google");
-            navigate("/perfil");
+            navigate("/profile");
           }}
         >
           {isLoading ? (
