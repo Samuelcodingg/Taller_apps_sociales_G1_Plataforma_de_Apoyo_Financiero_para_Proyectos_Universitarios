@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/api/health', (req, res) => {
-    res.status(200).json({ status: 'OK', message: 'Backend funcionando' });
+    res.status(200).json({ status: 'OK', message: 'Microservicio Identity profile funcionando' });
 });
 
 app.use('/api/auth', identityProfileRouter);
