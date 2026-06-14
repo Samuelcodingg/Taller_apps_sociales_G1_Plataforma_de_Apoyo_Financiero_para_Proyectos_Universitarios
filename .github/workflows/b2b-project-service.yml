@@ -103,11 +103,19 @@ jobs:
           cache: npm
           cache-dependency-path: b2b-project-service/package-lock.json
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (QA)
+        if: needs.resolve-deploy-env.outputs.target_env == 'qa'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-2
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_QAS }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Configure AWS credentials (PRD)
+        if: needs.resolve-deploy-env.outputs.target_env == 'prd'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_PRD }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Install dependencies
         working-directory: ./b2b-project-service
@@ -134,9 +142,18 @@ jobs:
           fi
           rm -rf node_modules/@prisma/engines || true
 
-      - name: Deploy with Serverless
+      - name: Deploy with Serverless (QA)
+        if: needs.resolve-deploy-env.outputs.target_env == 'qa'
         working-directory: ./b2b-project-service
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npx serverless deploy --config serverless.deploy.yml --stage ${{ needs.resolve-deploy-env.outputs.stage }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_QAS }}
+        run: npx serverless deploy --config serverless.deploy.yml --stage ${{ secrets.STAGE_QAS }}
+
+      - name: Deploy with Serverless (PRD)
+        if: needs.resolve-deploy-env.outputs.target_env == 'prd'
+        working-directory: ./b2b-project-service
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRD }}
+        run: npx serverless deploy --config serverless.deploy.yml --stage ${{ secrets.STAGE_PRD }}
