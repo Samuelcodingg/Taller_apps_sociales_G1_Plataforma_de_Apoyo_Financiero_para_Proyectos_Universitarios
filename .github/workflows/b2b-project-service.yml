@@ -1,0 +1,112 @@
+name: B2B Project Service CI/CD
+
+on:
+  push:
+    branches:
+      - feature/develop
+      - master
+    paths:
+      - 'b2b-project-service/**'
+      - '.github/workflows/b2b-project-service.yml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'b2b-project-service/**'
+      - '.github/workflows/b2b-project-service.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-2
+
+jobs:
+  ci:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: b2b-project-service/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./b2b-project-service
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: ./b2b-project-service
+        run: npm run prisma:generate --if-present
+
+      - name: Run tests
+        working-directory: ./b2b-project-service
+        run: npm test
+
+      - name: Build
+        working-directory: ./b2b-project-service
+        run: npm run build
+
+  deploy:
+    name: Deploy Lambda
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
+    environment: prod
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: b2b-project-service/package-lock.json
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-2
+
+      - name: Install dependencies
+        working-directory: ./b2b-project-service
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: ./b2b-project-service
+        run: npm run prisma:generate --if-present
+
+      - name: Build
+        working-directory: ./b2b-project-service
+        run: npm run build
+
+      - name: Prune dev dependencies
+        working-directory: ./b2b-project-service
+        run: npm prune --omit=dev
+
+      - name: Keep only Lambda Prisma engine
+        working-directory: ./b2b-project-service
+        shell: bash
+        run: |
+          if [ -d node_modules/.prisma/client ]; then
+            find node_modules/.prisma/client -type f -name 'libquery_engine-*' ! -name 'libquery_engine-rhel-openssl-3.0.x.so.node' -delete
+          fi
+          rm -rf node_modules/@prisma/engines || true
+
+      - name: Deploy with Serverless
+        working-directory: ./b2b-project-service
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRD }}
+        run: npx serverless deploy --config serverless.deploy.yml --stage prod
