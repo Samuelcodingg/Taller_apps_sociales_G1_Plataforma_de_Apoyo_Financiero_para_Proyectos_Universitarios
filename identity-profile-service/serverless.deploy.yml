@@ -29,13 +29,6 @@ provider:
   timeout: 30
   environment:
     DATABASE_URL: ${env:DATABASE_URL}
-  
-  vpc:
-    securityGroupIds:
-      - sg-02d69ae1041692ea7
-    subnetIds:
-      - subnet-0dfe7d838289693b2
-      - subnet-07276540ff15853dc
 
 functions:
   api:
