@@ -103,7 +103,7 @@ jobs:
 
       - name: Install Serverless Framework
         run: |
-          npm install -g serverless
+          npm install -g serverless@3
           serverless plugin install -n serverless-python-requirements
         working-directory: ./ai-analytics-service
 
@@ -114,7 +114,7 @@ jobs:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL_QAS }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY_QAS }}
-        run: serverless deploy --config serverless.deploy.yml --stage ${{ secrets.STAGE_QAS }}
+        run: serverless deploy --config serverless.yml --stage ${{ secrets.STAGE_QAS }}
 
       - name: Deploy with Serverless (PRD)
         if: needs.resolve-deploy-env.outputs.target_env == 'prd'
@@ -123,4 +123,4 @@ jobs:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL_PRD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY_PRD }}
-        run: serverless deploy --config serverless.deploy.yml --stage ${{ secrets.STAGE_PRD }}
+        run: serverless deploy --config serverless.yml --stage ${{ secrets.STAGE_PRD }}
