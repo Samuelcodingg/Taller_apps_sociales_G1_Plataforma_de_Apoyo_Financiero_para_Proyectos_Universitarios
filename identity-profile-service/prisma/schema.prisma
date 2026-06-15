@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
@@ -12,168 +7,447 @@ datasource db {
   provider = "mysql"
 }
 
-enum Role {
-  DONOR
-  CREATOR
-}
-
 model Account {
-  id            Int               @id @default(autoincrement()) @map("id_account")
-  email         String            @unique @db.VarChar(150)
-  password      String            @db.VarChar(255)
-  role          Role
-  emailVerified Boolean           @default(false) @map("email_verified")
-  institutionId Int?              @map("id_institution")
-  createdAt     DateTime          @default(now()) @map("created_at") @db.DateTime(0)
-
-  institution    Institution?      @relation(fields: [institutionId], references: [id])
-  profile        Profile?
-  createdCampaigns Campaign[]      @relation("CampaignCreator")
-  campaignComments CommentCampaign[]
-  donations      Donation[]        @relation("DonationDonor")
+  id                   String                 @id @map("id_account") @db.Char(36)
+  email                String                 @unique(map: "email") @db.VarChar(150)
+  password             String                 @db.VarChar(255)
+  emailVerified        Boolean?               @default(false) @map("email_verified")
+  provider             String                 @db.VarChar(50)
+  createdAt            DateTime               @map("created_at") @db.Timestamp(0)
+  last_login_at        DateTime?              @db.Timestamp(0)
+  is_active            Boolean?               @default(true)
+  account_roles        account_roles[]
+  createdCampaigns     Campaign[]             @relation("CampaignCreator")
+  campaign_interaction campaign_interaction[]
+  campaignComments     CommentCampaign[]
+  company              company[]
+  donations            Donation[]             @relation("DonationDonor")
+  notification         notification[]
+  notification_config  notification_config?
+  profile              Profile[]
+  project_message      project_message[]
+  proposal             proposal[]
+  user_recommendation  user_recommendation[]
+  verification         verification[]
 
   @@map("account")
 }
 
 model Institution {
-  id      Int       @id @default(autoincrement()) @map("id_institution")
-  name    String    @db.VarChar(150)
-  domain  String    @db.VarChar(100)
-
-  accounts Account[]
+  id        String    @id @map("id_institution") @db.Char(36)
+  name      String    @db.VarChar(150)
+  domain    String?   @unique(map: "domain") @db.VarChar(100)
+  country   String?   @db.VarChar(100)
+  is_active Boolean?
+  profile   Profile[]
 
   @@map("institution")
 }
 
 model Profile {
-  id                 Int           @id @default(autoincrement()) @map("id_profile")
-  accountId          Int           @unique @map("id_account")
-  names              String        @db.VarChar(150)
-  surnames           String        @db.VarChar(150)
-  birthDate          DateTime      @map("birth_date") @db.Date
-  professionalCareer String?       @map("professional_career") @db.VarChar(150)
-  photoUrl           String?       @map("photo_url") @db.Text
-  biography          String?       @db.Text
+  id             String           @id @map("id_profile") @db.Char(36)
+  accountId      String           @map("id_account") @db.Char(36)
+  names          String           @db.VarChar(150)
+  surnames       String           @db.VarChar(150)
+  birthDate      DateTime?        @map("birth_date") @db.Date
+  biography      String?          @db.Text
+  photoUrl       String?          @map("photo_url") @db.Text
+  id_institution String?          @db.Char(36)
+  id_country     String?          @db.Char(36)
+  updated_at     DateTime         @db.Timestamp(0)
+  account        Account          @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "profile_ibfk_1")
+  institution    Institution?     @relation(fields: [id_institution], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "profile_ibfk_2")
+  country        country?         @relation(fields: [id_country], references: [id_country], onDelete: NoAction, onUpdate: NoAction, map: "profile_ibfk_3")
+  profile_skills profile_skills[]
+  social_network social_network[]
 
-  account     Account      @relation(fields: [accountId], references: [id])
-  socialMedia SocialMedia[]
-
+  @@index([accountId], map: "id_account")
+  @@index([id_country], map: "id_country")
+  @@index([id_institution], map: "id_institution")
   @@map("profile")
 }
 
-model SocialMedia {
-  id        Int     @id @default(autoincrement()) @map("id_social_media")
-  profileId Int     @map("id_profile")
-  link      String  @db.Text
-
-  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  @@map("social_media")
-}
-
 model Campaign {
-  id            Int                @id @default(autoincrement()) @map("id_campaign")
-  creatorId     Int                @map("id_creator")
-  title         String             @db.VarChar(200)
-  description   String             @db.Text
-  goalAmount    Decimal            @map("goal_amount") @db.Decimal(10, 2)
-  currentAmount Decimal            @default(0) @map("current_amount") @db.Decimal(10, 2)
-  status        String             @db.VarChar(50)
-  endDate       DateTime           @map("end_date") @db.DateTime(0)
-  createdAt     DateTime           @default(now()) @map("created_at") @db.DateTime(0)
+  id                   String                 @id @map("id_campaign") @db.Char(36)
+  creatorId            String?                @map("id_creator") @db.Char(36)
+  title                String                 @db.VarChar(200)
+  description          String                 @db.Text
+  goalAmount           Decimal                @map("goal_amount") @db.Decimal(10, 2)
+  currentAmount        Decimal?               @map("current_amount") @db.Decimal(10, 2)
+  status               String                 @db.VarChar(50)
+  endDate              DateTime               @map("end_date") @db.Timestamp(0)
+  createdAt            DateTime               @map("created_at") @db.Timestamp(0)
+  updated_at           DateTime               @db.Timestamp(0)
+  creator              Account?               @relation("CampaignCreator", fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "campaign_ibfk_1")
+  categories           CampaignCategory[]
+  campaign_features    campaign_features[]
+  campaign_interaction campaign_interaction[]
+  media                CampaignMedia[]
+  campaign_metrics     campaign_metrics[]
+  campaign_prediction  campaign_prediction[]
+  campaign_update      campaign_update[]
+  comments             CommentCampaign[]
+  donations            Donation[]
+  user_recommendation  user_recommendation[]
 
-  creator    Account            @relation("CampaignCreator", fields: [creatorId], references: [id])
-  comments   CommentCampaign[]
-  media      CampaignMedia[]
-  updates    UpdateCampaign[]
-  donations  Donation[]
-  categories CampaignCategory[]
-
+  @@index([creatorId], map: "id_creator")
   @@map("campaign")
 }
 
 model Category {
-  id   Int               @id @default(autoincrement()) @map("id_category")
-  name String            @db.VarChar(100)
-
-  campaigns CampaignCategory[]
+  id                String              @id @map("id_category") @db.Char(36)
+  name              String              @db.VarChar(100)
+  icon_url          String?             @db.Text
+  campaigns         CampaignCategory[]
+  campaign_features campaign_features[]
 
   @@map("category")
 }
 
 model CampaignCategory {
-  campaignId Int @map("id_campaign")
-  categoryId Int @map("id_category")
-
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  campaignId String   @map("id_campaign") @db.Char(36)
+  categoryId String   @map("id_category") @db.Char(36)
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "campaign_category_ibfk_1")
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "campaign_category_ibfk_2")
 
   @@id([campaignId, categoryId])
+  @@index([categoryId], map: "id_category")
   @@map("campaign_category")
 }
 
-model UpdateCampaign {
-  id        Int      @id @default(autoincrement()) @map("id_update_campaign")
-  campaignId Int     @map("id_campaign")
-  title     String   @db.VarChar(150)
-  message   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
-
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
-  @@map("update_campaign")
-}
-
 model CampaignMedia {
-  id        Int     @id @default(autoincrement()) @map("id_campaign_media")
-  campaignId Int    @map("id_campaign")
-  typeMedia String  @map("type_media") @db.VarChar(50)
-  mediaUrl  String  @map("media_url") @db.Text
+  id          String    @id @map("id_campaign_media") @db.Char(36)
+  campaignId  String?   @map("id_campaign") @db.Char(36)
+  typeMedia   String    @map("type_media") @db.VarChar(20)
+  mediaUrl    String    @map("media_url") @db.Text
+  order_index Int?
+  campaign    Campaign? @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "campaign_media_ibfk_1")
 
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
+  @@index([campaignId], map: "id_campaign")
   @@map("campaign_media")
 }
 
 model CommentCampaign {
-  id        Int              @id @default(autoincrement()) @map("id_comment_campaign")
-  campaignId Int             @map("id_campaign")
-  accountId Int              @map("id_account")
-  content   String           @db.Text
-  parentId  Int?             @map("parent_id")
-  createdAt DateTime         @default(now()) @map("created_at") @db.DateTime(0)
+  id         String    @id @map("id_comment_campaign") @db.Char(36)
+  campaignId String?   @map("id_campaign") @db.Char(36)
+  accountId  String?   @map("id_account") @db.Char(36)
+  content    String    @db.Text
+  parentId   String?   @map("parent_id") @db.Char(36)
+  createdAt  DateTime  @map("created_at") @db.Timestamp(0)
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "comment_campaign_ibfk_1")
+  account    Account?  @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "comment_campaign_ibfk_2")
 
-  campaign Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  account  Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  parent   CommentCampaign?  @relation("CommentReplies", fields: [parentId], references: [id])
-  replies  CommentCampaign[] @relation("CommentReplies")
-
+  @@index([accountId], map: "id_account")
+  @@index([campaignId], map: "id_campaign")
   @@map("comment_campaign")
 }
 
 model Donation {
-  id          Int      @id @default(autoincrement()) @map("id_donation")
-  campaignId  Int      @map("id_campaign")
-  donorId     Int      @map("id_donor")
-  amount      Decimal  @db.Decimal(10, 2)
-  isAnonymous Boolean  @default(false) @map("is_anonymous")
+  id          String    @id @map("id_donation") @db.Char(36)
+  campaignId  String?   @map("id_campaign") @db.Char(36)
+  donorId     String?   @map("id_donor") @db.Char(36)
+  amount      Decimal   @db.Decimal(10, 2)
+  isAnonymous Boolean?  @default(false) @map("is_anonymous")
+  message     String?   @db.Text
+  created_at  DateTime  @db.Timestamp(0)
+  campaign    Campaign? @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "donation_ibfk_1")
+  donor       Account?  @relation("DonationDonor", fields: [donorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "donation_ibfk_2")
+  payments    Payment[]
 
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  donor    Account  @relation("DonationDonor", fields: [donorId], references: [id], onDelete: Cascade)
-  payments Payment[]
-
+  @@index([campaignId], map: "id_campaign")
+  @@index([donorId], map: "id_donor")
   @@map("donation")
 }
 
 model Payment {
-  id            Int      @id @default(autoincrement()) @map("id_payment")
-  donationId    Int      @map("id_donation")
-  paymentMethod String   @map("payment_method") @db.VarChar(100)
-  transactionId String   @map("transaction_id") @db.VarChar(150)
-  status        String   @db.VarChar(50)
-  createdAt     DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  id               String    @id @map("id_payment") @db.Char(36)
+  donationId       String?   @map("id_donation") @db.Char(36)
+  paymentMethod    String    @map("payment_method") @db.VarChar(50)
+  transactionId    String    @map("transaction_id") @db.VarChar(150)
+  status           String    @db.VarChar(50)
+  gateway          String    @db.VarChar(50)
+  gateway_response Json?
+  createdAt        DateTime  @map("created_at") @db.Timestamp(0)
+  donation         Donation? @relation(fields: [donationId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_ibfk_1")
 
-  donation Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
-
+  @@index([donationId], map: "id_donation")
   @@map("payment")
+}
+
+model account_roles {
+  id_account String   @db.Char(36)
+  id_role    String   @db.Char(36)
+  created_at DateTime @db.Timestamp(0)
+  account    Account  @relation(fields: [id_account], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "account_roles_ibfk_1")
+  roles      roles    @relation(fields: [id_role], references: [id_role], onDelete: NoAction, onUpdate: NoAction, map: "account_roles_ibfk_2")
+
+  @@id([id_account, id_role])
+  @@index([id_role], map: "id_role")
+}
+
+model business_request {
+  id_request  String     @id @db.Char(36)
+  id_company  String?    @db.Char(36)
+  title       String     @db.VarChar(200)
+  description String     @db.Text
+  budget      Decimal?   @db.Decimal(10, 2)
+  status      String     @db.VarChar(50)
+  created_at  DateTime   @db.Timestamp(0)
+  company     company?   @relation(fields: [id_company], references: [id_company], onDelete: NoAction, onUpdate: NoAction, map: "business_request_ibfk_1")
+  project     project[]
+  proposal    proposal[]
+
+  @@index([id_company], map: "id_company")
+}
+
+model campaign_features {
+  id_feature    String    @id @db.Char(36)
+  id_campaign   String?   @db.Char(36)
+  goal_amount   Decimal   @db.Decimal(10, 2)
+  duration_days Int
+  id_category   String?   @db.Char(36)
+  id_country    String?   @db.Char(36)
+  title_length  Int
+  created_at    DateTime  @db.Timestamp(0)
+  campaign      Campaign? @relation(fields: [id_campaign], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "campaign_features_ibfk_1")
+  category      Category? @relation(fields: [id_category], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "campaign_features_ibfk_2")
+  country       country?  @relation(fields: [id_country], references: [id_country], onDelete: NoAction, onUpdate: NoAction, map: "campaign_features_ibfk_3")
+
+  @@index([id_campaign], map: "id_campaign")
+  @@index([id_category], map: "id_category")
+  @@index([id_country], map: "id_country")
+}
+
+model campaign_interaction {
+  id_interaction String    @id @db.Char(36)
+  id_account     String?   @db.Char(36)
+  id_campaign    String?   @db.Char(36)
+  type           String    @db.VarChar(50)
+  created_at     DateTime  @db.Timestamp(0)
+  account        Account?  @relation(fields: [id_account], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "campaign_interaction_ibfk_1")
+  campaign       Campaign? @relation(fields: [id_campaign], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "campaign_interaction_ibfk_2")
+
+  @@index([id_account], map: "id_account")
+  @@index([id_campaign], map: "id_campaign")
+}
+
+model campaign_metrics {
+  id_metric          String    @id @db.Char(36)
+  id_campaign        String?   @db.Char(36)
+  date               DateTime  @db.Date
+  donations_last_24h Int
+  amount_last_24h    Decimal   @db.Decimal(10, 2)
+  trend_score        Decimal   @db.Decimal(5, 2)
+  campaign           Campaign? @relation(fields: [id_campaign], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "campaign_metrics_ibfk_1")
+
+  @@index([id_campaign], map: "id_campaign")
+}
+
+model campaign_prediction {
+  id_prediction       String                @id @db.Char(36)
+  id_campaign         String?               @db.Char(36)
+  id_model            String?               @db.Char(36)
+  success_probability Decimal               @db.Decimal(5, 4)
+  created_at          DateTime              @db.Timestamp(0)
+  campaign            Campaign?             @relation(fields: [id_campaign], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "campaign_prediction_ibfk_1")
+  ml_model            ml_model?             @relation(fields: [id_model], references: [id_model], onDelete: NoAction, onUpdate: NoAction, map: "campaign_prediction_ibfk_2")
+  prediction_feedback prediction_feedback[]
+
+  @@index([id_campaign], map: "id_campaign")
+  @@index([id_model], map: "id_model")
+}
+
+model campaign_update {
+  id_update_campaign String    @id @db.Char(36)
+  id_campaign        String?   @db.Char(36)
+  title              String?   @db.VarChar(150)
+  message            String    @db.Text
+  created_at         DateTime  @db.Timestamp(0)
+  campaign           Campaign? @relation(fields: [id_campaign], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "campaign_update_ibfk_1")
+
+  @@index([id_campaign], map: "id_campaign")
+}
+
+model company {
+  id_company       String             @id @db.Char(36)
+  id_account       String?            @db.Char(36)
+  tax_id           String?            @unique(map: "tax_id") @db.VarChar(20)
+  name             String             @db.VarChar(150)
+  industry         String?            @db.VarChar(100)
+  verified         Boolean?           @default(false)
+  created_at       DateTime           @db.Timestamp(0)
+  business_request business_request[]
+  account          Account?           @relation(fields: [id_account], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "company_ibfk_1")
+
+  @@index([id_account], map: "id_account")
+}
+
+model country {
+  id_country        String              @id @db.Char(36)
+  name              String?             @unique(map: "name") @db.VarChar(100)
+  campaign_features campaign_features[]
+  profile           Profile[]
+}
+
+model ml_model {
+  id_model            String                @id @db.Char(36)
+  name                String                @db.VarChar(100)
+  version             String                @db.VarChar(50)
+  type                String                @db.VarChar(50)
+  created_at          DateTime              @db.Timestamp(0)
+  campaign_prediction campaign_prediction[]
+}
+
+model notification {
+  id_notification String   @id @db.Char(36)
+  id_account      String?  @db.Char(36)
+  type            String   @db.VarChar(80)
+  title           String   @db.VarChar(200)
+  body            String?  @db.Text
+  entity_type     String?  @db.VarChar(50)
+  entity_id       String?  @db.Char(36)
+  is_read         Boolean? @default(false)
+  created_at      DateTime @db.Timestamp(0)
+  account         Account? @relation(fields: [id_account], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "notification_ibfk_1")
+
+  @@index([id_account], map: "id_account")
+}
+
+model notification_config {
+  id_config           String   @id @db.Char(36)
+  id_account          String?  @unique(map: "id_account") @db.Char(36)
+  email_enabled       Boolean? @default(true)
+  push_enabled        Boolean? @default(true)
+  notify_donation     Boolean? @default(true)
+  notify_campaign_end Boolean? @default(true)
+  notify_b2b          Boolean? @default(true)
+  updated_at          DateTime @db.Timestamp(0)
+  account             Account? @relation(fields: [id_account], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "notification_config_ibfk_1")
+}
+
+model prediction_feedback {
+  id_feedback         String               @id @db.Char(36)
+  id_prediction       String?              @db.Char(36)
+  message             String               @db.Text
+  created_at          DateTime             @db.Timestamp(0)
+  campaign_prediction campaign_prediction? @relation(fields: [id_prediction], references: [id_prediction], onDelete: NoAction, onUpdate: NoAction, map: "prediction_feedback_ibfk_1")
+
+  @@index([id_prediction], map: "id_prediction")
+}
+
+model profile_skills {
+  id_profile String  @db.Char(36)
+  id_skill   String  @db.Char(36)
+  level      String? @db.VarChar(20)
+  profile    Profile @relation(fields: [id_profile], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "profile_skills_ibfk_1")
+  skills     skills  @relation(fields: [id_skill], references: [id_skill], onDelete: NoAction, onUpdate: NoAction, map: "profile_skills_ibfk_2")
+
+  @@id([id_profile, id_skill])
+  @@index([id_skill], map: "id_skill")
+}
+
+model project {
+  id_project       String            @id @db.Char(36)
+  id_request       String?           @db.Char(36)
+  id_proposal      String?           @db.Char(36)
+  status           String            @db.VarChar(50)
+  start_date       DateTime?         @db.Timestamp(0)
+  end_date         DateTime?         @db.Timestamp(0)
+  completed_at     DateTime?         @db.Timestamp(0)
+  business_request business_request? @relation(fields: [id_request], references: [id_request], onDelete: NoAction, onUpdate: NoAction, map: "project_ibfk_1")
+  proposal         proposal?         @relation(fields: [id_proposal], references: [id_proposal], onDelete: NoAction, onUpdate: NoAction, map: "project_ibfk_2")
+  project_message  project_message[]
+
+  @@index([id_proposal], map: "id_proposal")
+  @@index([id_request], map: "id_request")
+}
+
+model project_message {
+  id_message String   @id @db.Char(36)
+  id_project String?  @db.Char(36)
+  id_sender  String?  @db.Char(36)
+  content    String   @db.Text
+  is_read    Boolean? @default(false)
+  created_at DateTime @db.Timestamp(0)
+  project    project? @relation(fields: [id_project], references: [id_project], onDelete: NoAction, onUpdate: NoAction, map: "project_message_ibfk_1")
+  account    Account? @relation(fields: [id_sender], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "project_message_ibfk_2")
+
+  @@index([id_project], map: "id_project")
+  @@index([id_sender], map: "id_sender")
+}
+
+model proposal {
+  id_proposal      String            @id @db.Char(36)
+  id_request       String?           @db.Char(36)
+  id_account       String?           @db.Char(36)
+  proposal_text    String            @db.Text
+  proposed_budget  Decimal?          @db.Decimal(10, 2)
+  status           String            @db.VarChar(50)
+  created_at       DateTime          @db.Timestamp(0)
+  project          project[]
+  business_request business_request? @relation(fields: [id_request], references: [id_request], onDelete: NoAction, onUpdate: NoAction, map: "proposal_ibfk_1")
+  account          Account?          @relation(fields: [id_account], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "proposal_ibfk_2")
+
+  @@index([id_account], map: "id_account")
+  @@index([id_request], map: "id_request")
+}
+
+model request_skills {
+  id_request String @db.Char(36)
+  id_skill   String @db.Char(36)
+
+  @@id([id_request, id_skill])
+}
+
+model roles {
+  id_role       String          @id @db.Char(36)
+  name          String?         @unique(map: "name") @db.VarChar(50)
+  description   String?         @db.Text
+  account_roles account_roles[]
+}
+
+model skills {
+  id_skill       String           @id @db.Char(36)
+  name           String?          @unique(map: "name") @db.VarChar(100)
+  category       String?          @db.VarChar(100)
+  profile_skills profile_skills[]
+}
+
+model social_network {
+  id_social_media String   @id @db.Char(36)
+  id_profile      String?  @db.Char(36)
+  platform        String   @db.VarChar(50)
+  link            String   @db.Text
+  profile         Profile? @relation(fields: [id_profile], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "social_network_ibfk_1")
+
+  @@index([id_profile], map: "id_profile")
+}
+
+model user_recommendation {
+  id_recommendation String    @id @db.Char(36)
+  id_account        String?   @db.Char(36)
+  id_campaign       String?   @db.Char(36)
+  score             Decimal   @db.Decimal(5, 4)
+  created_at        DateTime  @db.Timestamp(0)
+  account           Account?  @relation(fields: [id_account], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_recommendation_ibfk_1")
+  campaign          Campaign? @relation(fields: [id_campaign], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_recommendation_ibfk_2")
+
+  @@index([id_account], map: "id_account")
+  @@index([id_campaign], map: "id_campaign")
+}
+
+model verification {
+  id_verification  String    @id @db.Char(36)
+  id_account       String?   @db.Char(36)
+  type             String    @db.VarChar(50)
+  status           String    @db.VarChar(50)
+  document_url     String    @db.Text
+  extracted_data   Json?
+  rejection_reason String?   @db.Text
+  reviewed_by      String?   @db.Char(36)
+  reviewed_at      DateTime? @db.Timestamp(0)
+  created_at       DateTime  @db.Timestamp(0)
+  account          Account?  @relation(fields: [id_account], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "verification_ibfk_1")
+
+  @@index([id_account], map: "id_account")
 }

@@ -1,9 +1,19 @@
-import { Account as PrismaAccount, PrismaClient, Role as PrismaRole } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { randomUUID } from 'node:crypto';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { IAuthRepository, StoreRefreshTokenInput } from '../domain/IAuthRepository';
-import { CreateLocalUserInput, CreateOAuthUserInput, User } from '../domain/User';
+import { CreateLocalUserInput, CreateOAuthUserInput, AuthProvider, User } from '../domain/User';
+import { Role } from '../domain/Role';
 import { assertDatabaseUrl } from '../../../shared/config';
+
+// La cuenta siempre se carga junto a sus roles (tabla account_roles -> roles),
+// ya que en esta base de datos el rol no vive como columna de `account`.
+const accountWithRoles = Prisma.validator<Prisma.AccountDefaultArgs>()({
+	include: { account_roles: { include: { roles: true } } },
+});
+
+type AccountWithRoles = Prisma.AccountGetPayload<typeof accountWithRoles>;
 
 export class AuthRepository implements IAuthRepository {
 	private readonly prisma: PrismaClient;
@@ -22,48 +32,39 @@ export class AuthRepository implements IAuthRepository {
 	async findByEmail(email: string): Promise<User | null> {
 		const account = await this.prisma.account.findUnique({
 			where: { email },
+			...accountWithRoles,
 		});
 
 		return account ? this.toDomainUser(account) : null;
 	}
 
 	async findById(userId: string): Promise<User | null> {
-		const id = Number(userId);
-		if (Number.isNaN(id)) {
-			return null;
-		}
-
 		const account = await this.prisma.account.findUnique({
-			where: { id },
+			where: { id: userId },
+			...accountWithRoles,
 		});
 
 		return account ? this.toDomainUser(account) : null;
 	}
 
 	async createLocalUser(input: CreateLocalUserInput): Promise<User> {
-		const createdAccount = await this.prisma.account.create({
-			data: {
-				email: input.email,
-				password: input.passwordHash,
-				role: input.role as PrismaRole,
-				emailVerified: false,
-			},
+		return this.createAccountWithRole({
+			email: input.email,
+			password: input.passwordHash,
+			provider: 'LOCAL',
+			role: input.role,
+			emailVerified: false,
 		});
-
-		return this.toDomainUser(createdAccount);
 	}
 
 	async createOAuthUser(input: CreateOAuthUserInput): Promise<User> {
-		const createdAccount = await this.prisma.account.create({
-			data: {
-				email: input.email,
-				password: '',
-				role: input.role as PrismaRole,
-				emailVerified: true,
-			},
+		return this.createAccountWithRole({
+			email: input.email,
+			password: '',
+			provider: input.provider,
+			role: input.role,
+			emailVerified: true,
 		});
-
-		return this.toDomainUser(createdAccount);
 	}
 
 	async storeRefreshToken(input: StoreRefreshTokenInput): Promise<void> {
@@ -74,33 +75,67 @@ export class AuthRepository implements IAuthRepository {
 		const decoded = jwt.decode(token) as JwtPayload | null;
 		const rawUserId = decoded?.userId;
 
-		if (!rawUserId) {
+		if (typeof rawUserId !== 'string' || rawUserId.length === 0) {
 			return null;
 		}
 
-		const id = Number(rawUserId);
-		if (Number.isNaN(id)) {
-			return null;
-		}
-
-		const account = await this.prisma.account.findUnique({
-			where: { id },
-		});
-
-		return account ? this.toDomainUser(account) : null;
+		return this.findById(rawUserId);
 	}
 
 	async revokeRefreshToken(token: string): Promise<void> {
 		void token;
 	}
 
-	private toDomainUser(account: PrismaAccount): User {
+	// Crea la cuenta y la asocia con el rol correspondiente en account_roles,
+	// todo dentro de una transaccion para no dejar cuentas sin rol.
+	private async createAccountWithRole(params: {
+		email: string;
+		password: string;
+		provider: AuthProvider;
+		role: Role;
+		emailVerified: boolean;
+	}): Promise<User> {
+		const account = await this.prisma.$transaction(async (tx) => {
+			const role = await tx.roles.findUnique({ where: { name: params.role } });
+			if (!role) {
+				throw new Error(`El rol "${params.role}" no existe en la base de datos.`);
+			}
+
+			const now = new Date();
+			const created = await tx.account.create({
+				data: {
+					id: randomUUID(),
+					email: params.email,
+					password: params.password,
+					provider: params.provider,
+					emailVerified: params.emailVerified,
+					createdAt: now,
+					account_roles: {
+						create: {
+							id_role: role.id_role,
+							created_at: now,
+						},
+					},
+				},
+				...accountWithRoles,
+			});
+
+			return created;
+		});
+
+		return this.toDomainUser(account);
+	}
+
+	private toDomainUser(account: AccountWithRoles): User {
+		const roleName = account.account_roles[0]?.roles.name ?? null;
+		const role = (roleName as Role) ?? Role.DONOR;
+
 		return {
-			id: String(account.id),
+			id: account.id,
 			email: account.email,
 			passwordHash: account.password,
-			role: account.role as User['role'],
-			provider: 'LOCAL',
+			role,
+			provider: (account.provider as AuthProvider) ?? 'LOCAL',
 			providerId: null,
 			createdAt: account.createdAt,
 			updatedAt: account.createdAt,
