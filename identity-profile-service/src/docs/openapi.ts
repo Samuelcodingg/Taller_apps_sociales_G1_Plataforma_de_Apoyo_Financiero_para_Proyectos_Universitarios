@@ -17,6 +17,8 @@ export const openapiSpec: OpenAPIV3.Document = {
 	tags: [
 		{ name: 'Health', description: 'Estado del servicio' },
 		{ name: 'Auth', description: 'Autenticacion y registro de usuarios' },
+		{ name: 'Profile', description: 'Gestion del perfil del usuario' },
+		{ name: 'Verification', description: 'Verificacion de identidad (KYC)' },
 	],
 	paths: {
 		'/api/health': {
@@ -143,6 +145,100 @@ export const openapiSpec: OpenAPIV3.Document = {
 				},
 			},
 		},
+		'/api/profile/me': {
+			get: {
+				tags: ['Profile'],
+				summary: 'Obtiene el perfil del usuario autenticado',
+				security: [{ bearerAuth: [] }],
+				responses: {
+					'200': {
+						description: 'Perfil del usuario',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Profile' },
+							},
+						},
+					},
+					'401': { $ref: '#/components/responses/UnauthorizedError' },
+					'404': { $ref: '#/components/responses/NotFoundError' },
+					'500': { $ref: '#/components/responses/ServerError' },
+				},
+			},
+			put: {
+				tags: ['Profile'],
+				summary: 'Actualiza el perfil del usuario autenticado',
+				security: [{ bearerAuth: [] }],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/UpdateProfileInput' },
+						},
+					},
+				},
+				responses: {
+					'200': {
+						description: 'Perfil actualizado',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Profile' },
+							},
+						},
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/UnauthorizedError' },
+					'404': { $ref: '#/components/responses/NotFoundError' },
+					'500': { $ref: '#/components/responses/ServerError' },
+				},
+			},
+		},
+		'/api/verification/upload': {
+			post: {
+				tags: ['Verification'],
+				summary: 'Envia la URL del documento KYC y crea una verificacion PENDING',
+				security: [{ bearerAuth: [] }],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/UploadVerificationInput' },
+						},
+					},
+				},
+				responses: {
+					'201': {
+						description: 'Verificacion creada en estado PENDING',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Verification' },
+							},
+						},
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/UnauthorizedError' },
+					'500': { $ref: '#/components/responses/ServerError' },
+				},
+			},
+		},
+		'/api/verification/status': {
+			get: {
+				tags: ['Verification'],
+				summary: 'Devuelve el estado de verificacion del usuario autenticado',
+				security: [{ bearerAuth: [] }],
+				responses: {
+					'200': {
+						description: 'Estado de verificacion',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/VerificationStatus' },
+							},
+						},
+					},
+					'401': { $ref: '#/components/responses/UnauthorizedError' },
+					'500': { $ref: '#/components/responses/ServerError' },
+				},
+			},
+		},
 	},
 	components: {
 		schemas: {
@@ -192,6 +288,109 @@ export const openapiSpec: OpenAPIV3.Document = {
 					message: { type: 'string' },
 				},
 			},
+			SocialNetwork: {
+				type: 'object',
+				properties: {
+					id: { type: 'string' },
+					platform: { type: 'string', example: 'LINKEDIN' },
+					link: { type: 'string', example: 'https://linkedin.com/in/usuario' },
+				},
+			},
+			Profile: {
+				type: 'object',
+				properties: {
+					id: { type: 'string' },
+					accountId: { type: 'string' },
+					names: { type: 'string', example: 'Diego' },
+					surnames: { type: 'string', example: 'Linares' },
+					birthDate: { type: 'string', format: 'date', nullable: true, example: '1999-05-20' },
+					biography: { type: 'string', nullable: true },
+					photoUrl: { type: 'string', nullable: true },
+					country: {
+						type: 'object',
+						nullable: true,
+						properties: { id: { type: 'string' }, name: { type: 'string', nullable: true } },
+					},
+					institution: {
+						type: 'object',
+						nullable: true,
+						properties: { id: { type: 'string' }, name: { type: 'string' } },
+					},
+					socialNetworks: {
+						type: 'array',
+						items: { $ref: '#/components/schemas/SocialNetwork' },
+					},
+					updatedAt: { type: 'string', format: 'date-time' },
+				},
+			},
+			UpdateProfileInput: {
+				type: 'object',
+				properties: {
+					names: { type: 'string', example: 'Diego' },
+					surnames: { type: 'string', example: 'Linares' },
+					biography: { type: 'string', nullable: true },
+					birthDate: { type: 'string', format: 'date', nullable: true, example: '1999-05-20' },
+					photoUrl: { type: 'string', nullable: true },
+					countryId: { type: 'string', nullable: true },
+					institutionId: { type: 'string', nullable: true },
+					socialNetworks: {
+						type: 'array',
+						description: 'Si se envia, reemplaza por completo las redes sociales del perfil.',
+						items: {
+							type: 'object',
+							required: ['platform', 'link'],
+							properties: {
+								platform: { type: 'string', example: 'LINKEDIN' },
+								link: { type: 'string', example: 'https://linkedin.com/in/usuario' },
+							},
+						},
+					},
+				},
+			},
+			UploadVerificationInput: {
+				type: 'object',
+				required: ['documentUrl'],
+				properties: {
+					documentUrl: {
+						type: 'string',
+						example: 'https://bucket.s3.amazonaws.com/docs/dni-123.pdf',
+					},
+					type: { type: 'string', example: 'KYC', default: 'KYC' },
+				},
+			},
+			Verification: {
+				type: 'object',
+				properties: {
+					id: { type: 'string' },
+					type: { type: 'string', example: 'KYC' },
+					status: { type: 'string', example: 'PENDING' },
+					documentUrl: { type: 'string' },
+					rejectionReason: { type: 'string', nullable: true },
+					reviewedAt: { type: 'string', format: 'date-time', nullable: true },
+					createdAt: { type: 'string', format: 'date-time' },
+				},
+			},
+			VerificationStatus: {
+				type: 'object',
+				properties: {
+					status: {
+						type: 'string',
+						enum: ['NOT_SUBMITTED', 'PENDING', 'APPROVED', 'REJECTED'],
+						example: 'PENDING',
+					},
+					type: { type: 'string', nullable: true, example: 'KYC' },
+					rejectionReason: { type: 'string', nullable: true },
+					reviewedAt: { type: 'string', format: 'date-time', nullable: true },
+					createdAt: { type: 'string', format: 'date-time', nullable: true },
+				},
+			},
+		},
+		securitySchemes: {
+			bearerAuth: {
+				type: 'http',
+				scheme: 'bearer',
+				bearerFormat: 'JWT',
+			},
 		},
 		responses: {
 			ValidationError: {
@@ -218,6 +417,15 @@ export const openapiSpec: OpenAPIV3.Document = {
 					'application/json': {
 						schema: { $ref: '#/components/schemas/ErrorResponse' },
 						example: { message: 'El email ya esta registrado.' },
+					},
+				},
+			},
+			NotFoundError: {
+				description: 'El recurso no existe',
+				content: {
+					'application/json': {
+						schema: { $ref: '#/components/schemas/ErrorResponse' },
+						example: { message: 'El perfil del usuario no existe.' },
 					},
 				},
 			},

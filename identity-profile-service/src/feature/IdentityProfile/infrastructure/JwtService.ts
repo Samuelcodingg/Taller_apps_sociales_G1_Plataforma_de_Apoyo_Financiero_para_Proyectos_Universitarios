@@ -23,6 +23,20 @@ export class JwtService implements ITokenService {
 		return { accessToken, refreshToken };
 	}
 
+	verifyAccessToken(token: string): AuthTokenPayload {
+		const decoded = jwt.verify(token, this.accessSecret) as JwtPayload;
+
+		if (!decoded.userId || !decoded.email || !decoded.role) {
+			throw new Error('El access token no contiene datos validos.');
+		}
+
+		return {
+			userId: String(decoded.userId),
+			email: String(decoded.email),
+			role: decoded.role as AuthTokenPayload['role'],
+		};
+	}
+
 	verifyRefreshToken(token: string): AuthTokenPayload {
 		const decoded = jwt.verify(token, this.refreshSecret) as JwtPayload;
 

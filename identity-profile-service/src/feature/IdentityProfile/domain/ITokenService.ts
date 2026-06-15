@@ -9,6 +9,7 @@ export interface AuthTokenPayload {
 
 export interface ITokenService {
 	issueTokens(payload: AuthTokenPayload): AuthTokens;
+	verifyAccessToken(token: string): AuthTokenPayload;
 	verifyRefreshToken(token: string): AuthTokenPayload;
 	getRefreshTokenExpiryDate(): Date;
 }

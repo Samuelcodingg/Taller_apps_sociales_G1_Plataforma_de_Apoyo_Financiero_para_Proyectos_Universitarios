@@ -116,6 +116,15 @@ export class AuthRepository implements IAuthRepository {
 							created_at: now,
 						},
 					},
+					// Perfil inicial basico vinculado al id_account, en la misma transaccion.
+					profile: {
+						create: {
+							id: randomUUID(),
+							names: '',
+							surnames: '',
+							updated_at: now,
+						},
+					},
 				},
 				...accountWithRoles,
 			});
