@@ -90,3 +90,5 @@ resources:
         VisibilityTimeout: 60
         # Retiene los mensajes hasta 4 dias si nadie los consume aun.
         MessageRetentionPeriod: 345600
+
+        # Forzando el despliegue para crear la cola SQS de KYC
