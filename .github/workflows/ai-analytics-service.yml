@@ -60,7 +60,7 @@ jobs:
           if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/feature/develop" ]; then
             SHOULD_DEPLOY="true"
             TARGET_ENV="qa"
-            STAGE="qa"
+            STAGE="dev"
           elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/master" ]; then
             SHOULD_DEPLOY="true"
             TARGET_ENV="prd"
