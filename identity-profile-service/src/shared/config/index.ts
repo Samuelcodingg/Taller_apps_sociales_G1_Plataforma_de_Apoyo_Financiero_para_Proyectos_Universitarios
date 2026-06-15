@@ -9,9 +9,15 @@ export interface JwtConfig {
 	refreshTtlSeconds: number;
 }
 
+export interface AwsConfig {
+	region: string;
+	verificationQueueUrl: string | undefined;
+}
+
 export interface AppConfig {
 	databaseUrl: string | undefined;
 	jwt: JwtConfig;
+	aws: AwsConfig;
 }
 
 export const config: AppConfig = {
@@ -21,6 +27,10 @@ export const config: AppConfig = {
 		refreshSecret: process.env.JWT_REFRESH_SECRET ?? 'local-refresh-secret',
 		accessTtlSeconds: Number(process.env.JWT_ACCESS_TTL_SECONDS ?? 900),
 		refreshTtlSeconds: Number(process.env.JWT_REFRESH_TTL_SECONDS ?? 604800),
+	},
+	aws: {
+		region: process.env.AWS_REGION ?? 'us-east-2',
+		verificationQueueUrl: process.env.VERIFICATION_QUEUE_URL,
 	},
 };
 

@@ -49,7 +49,7 @@ Sigue este patrón para nuevas features: puertos en `domain/`, casos de uso cont
 Features actuales (todas montadas en `src/app.ts`):
 - `IdentityProfile` → `/api/auth` — registro (donor/creator), login, refresh token. **Rutas públicas.**
 - `Profile` → `/api/profile` — `GET/PUT /me` del perfil del usuario autenticado (incluye país, institución y redes sociales). **Rutas protegidas.**
-- `Verification` → `/api/verification` — `POST /upload` (crea verificación KYC en estado `PENDING`) y `GET /status`. **Rutas protegidas.**
+- `Verification` → `/api/verification` — `POST /upload` (crea verificación KYC en estado `PENDING`) y `GET /status`. **Rutas protegidas.** Tras guardar en BD, `UploadVerification` dispara de forma asíncrona un evento a **AWS SQS** (`SqsVerificationEventPublisher`, puerto `IVerificationEventPublisher`) con `{ verificationId, accountId, documentUrl }` para el futuro servicio de IA. El publicador es **opcional** y los fallos de envío se capturan y loguean: el endpoint devuelve `201` igual porque el documento ya quedó persistido. Requiere `VERIFICATION_QUEUE_URL` (la cola se crea en `serverless.deploy.yml` → `resources`, y el permiso `sqs:SendMessage` está en `provider.iam`).
 
 `src/shared/` es el kernel compartido:
 - `config/` — lectura centralizada de `process.env` + `assertDatabaseUrl`.

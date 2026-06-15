@@ -12,6 +12,7 @@ export const openapiSpec: OpenAPIV3.Document = {
 			'para proyectos universitarios. Gestiona registro, login y refresco de tokens.',
 	},
 	servers: [
+		{ url: 'https://ywf61bjrme.execute-api.us-east-2.amazonaws.com', description: 'AWS (API Gateway)' },
 		{ url: '/', description: 'Servidor actual' },
 	],
 	tags: [

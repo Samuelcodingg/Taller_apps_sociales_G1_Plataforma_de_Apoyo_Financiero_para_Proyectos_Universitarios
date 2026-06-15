@@ -4,6 +4,10 @@ import {
 	CreateVerificationInput,
 	IVerificationRepository,
 } from '../../../src/feature/Verification/domain/IVerificationRepository';
+import {
+	IVerificationEventPublisher,
+	VerificationRequestedEvent,
+} from '../../../src/feature/Verification/domain/IVerificationEventPublisher';
 import { Verification } from '../../../src/feature/Verification/domain/Verification';
 
 class CapturingVerificationRepository implements IVerificationRepository {
@@ -59,5 +63,39 @@ describe('UploadVerification', () => {
 		await expect(useCase.execute('account-1', { documentUrl: '   ' })).rejects.toBeInstanceOf(
 			ValidationError,
 		);
+	});
+
+	it('publica el evento de verificacion con los tres datos clave', async () => {
+		const repo = new CapturingVerificationRepository();
+		const published: VerificationRequestedEvent[] = [];
+		const publisher: IVerificationEventPublisher = {
+			async publishVerificationRequested(event) {
+				published.push(event);
+			},
+		};
+		const useCase = new UploadVerification(repo, publisher);
+
+		const dto = await useCase.execute('account-1', { documentUrl: 'https://x/doc.pdf' });
+
+		expect(published).toEqual([
+			{ verificationId: dto.id, accountId: 'account-1', documentUrl: 'https://x/doc.pdf' },
+		]);
+	});
+
+	it('devuelve 201 (no falla) aunque la publicacion en SQS falle', async () => {
+		const repo = new CapturingVerificationRepository();
+		const publisher: IVerificationEventPublisher = {
+			async publishVerificationRequested() {
+				throw new Error('fallo de red SQS');
+			},
+		};
+		const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+		const useCase = new UploadVerification(repo, publisher);
+
+		const dto = await useCase.execute('account-1', { documentUrl: 'https://x/doc.pdf' });
+
+		expect(dto.status).toBe('PENDING');
+		expect(errorSpy).toHaveBeenCalled();
+		errorSpy.mockRestore();
 	});
 });

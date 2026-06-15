@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { HttpController } from './entrypoints/HttpController';
 import { VerificationRepository } from './infrastructure/VerificationRepository';
+import { SqsVerificationEventPublisher } from './infrastructure/SqsVerificationEventPublisher';
 import { UploadVerification } from './application/UploadVerification';
 import { GetVerificationStatus } from './application/GetVerificationStatus';
 import { JwtService } from '../IdentityProfile/infrastructure/JwtService';
@@ -11,10 +12,14 @@ const router = Router();
 
 // 1. Adaptadores Driven (infraestructura).
 const verificationRepository = new VerificationRepository();
+const verificationEventPublisher = new SqsVerificationEventPublisher();
 const jwtService = new JwtService();
 
 // 2. Casos de Uso (application).
-const uploadVerification = new UploadVerification(verificationRepository);
+const uploadVerification = new UploadVerification(
+	verificationRepository,
+	verificationEventPublisher,
+);
 const getVerificationStatus = new GetVerificationStatus(verificationRepository);
 
 // 3. Adaptador Driving (entrypoint).

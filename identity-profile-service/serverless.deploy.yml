@@ -29,9 +29,33 @@ provider:
   timeout: 30
   environment:
     DATABASE_URL: ${env:DATABASE_URL}
+    # URL de la cola SQS creada en el bloque resources (Ref devuelve la URL).
+    VERIFICATION_QUEUE_URL:
+      Ref: VerificationQueue
+  iam:
+    role:
+      statements:
+        # Permite a la Lambda escribir mensajes en la cola de verificacion.
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+          Resource:
+            Fn::GetAtt: [VerificationQueue, Arn]
 
 functions:
   api:
     handler: dist/lambda.handler
     events:
       - httpApi: '*'
+
+resources:
+  Resources:
+    # Cola SQS que recibe las solicitudes de verificacion para el servicio de IA.
+    VerificationQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-verification-queue
+        # Tiempo que un mensaje queda oculto mientras un consumidor lo procesa.
+        VisibilityTimeout: 60
+        # Retiene los mensajes hasta 4 dias si nadie los consume aun.
+        MessageRetentionPeriod: 345600
