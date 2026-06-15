@@ -1,0 +1,50 @@
+service: ai-analytics-service
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: python3.10
+  region: us-east-2
+  stage: ${opt:stage, 'dev'}
+  memorySize: 512
+  timeout: 60
+  environment:
+    DATABASE_URL: ${env:DATABASE_URL}
+    GEMINI_API_KEY: ${env:GEMINI_API_KEY}
+    LOG_LEVEL: ${env:LOG_LEVEL, 'INFO'}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource:
+            - arn:aws:sqs:us-east-2:676480496543:sembramos-kyc-queue-${self:provider.stage}
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    slim: true
+    strip: false
+
+package:
+  patterns:
+    - "!**"
+    - "src/**"
+    - "requirements.txt"
+
+functions:
+  processKyc:
+    handler: src.feature.VerificationAnalytics.infrastructure.handlers.sqs_kyc_handler.handler
+    description: Consume documentos KYC desde SQS, los analiza con Gemini y actualiza MariaDB
+    events:
+      - sqs:
+          arn: arn:aws:sqs:us-east-2:676480496543:sembramos-kyc-queue-${self:provider.stage}
+          batchSize: 1
+          functionResponseType: ReportBatchItemFailures

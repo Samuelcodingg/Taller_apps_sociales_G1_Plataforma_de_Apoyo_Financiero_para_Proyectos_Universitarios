@@ -133,14 +133,18 @@ jobs:
         working-directory: ./identity-profile-service
         run: npm prune --omit=dev
 
-      - name: Keep only Lambda Prisma engine
+      - name: Purge Prisma engines and caches
         working-directory: ./identity-profile-service
         shell: bash
         run: |
+          # Conservar solo el query engine de AWS Lambda; borrar los demas.
           if [ -d node_modules/.prisma/client ]; then
             find node_modules/.prisma/client -type f -name 'libquery_engine-*' ! -name 'libquery_engine-rhel-openssl-3.0.x.so.node' -delete
           fi
+          # Eliminar el paquete de engines de Prisma (binarios pesados sobrantes).
           rm -rf node_modules/@prisma/engines || true
+          # Eliminar la cache de npm/herramientas.
+          rm -rf node_modules/.cache || true
 
       - name: Deploy with Serverless (QA)
         if: needs.resolve-deploy-env.outputs.target_env == 'qa'

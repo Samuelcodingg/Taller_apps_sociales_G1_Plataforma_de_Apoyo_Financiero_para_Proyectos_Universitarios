@@ -1,0 +1,12 @@
+# Secretos y entorno
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Serverless
+.serverless/
+node_modules/
