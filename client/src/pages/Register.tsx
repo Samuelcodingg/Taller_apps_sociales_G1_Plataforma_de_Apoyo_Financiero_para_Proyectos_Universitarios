@@ -55,7 +55,7 @@ const Register = ({ value }: RegisterProps) => {
     try {
       if (data.accountType === ACCOUNT_TYPES[0]) {
         const creatorData: Omit<RegisterCreatorRequest, "document"> = {
-          accountType: data.accountType,
+          // accountType: data.accountType,
           email: data.email,
           password: data.password,
         };
@@ -67,7 +67,7 @@ const Register = ({ value }: RegisterProps) => {
       }
 
       const donorData: RegisterDonorRequest = {
-        accountType: data.accountType,
+        // accountType: data.accountType,
         names: data.names,
         lastNames: data.lastNames,
         email: data.email,
@@ -250,9 +250,11 @@ const Register = ({ value }: RegisterProps) => {
             {...register("email")}
           />
 
-          <p className="text-xs text-muted-foreground">
-            Debe pertenecer a un dominio institucional
-          </p>
+          {accountType === ACCOUNT_TYPES[0] && (
+            <p className="text-xs text-muted-foreground">
+              Debe pertenecer a un dominio institucional
+            </p>
+          )}
 
           {errors.email && (
             <p className="text-sm text-red-500">{errors.email.message}</p>

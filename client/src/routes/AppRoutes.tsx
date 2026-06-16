@@ -8,7 +8,7 @@ import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import Perfil from "@/pages/Perfil";
 import Tendencias from "@/pages/Tendencias";
-import Validacion from "@/pages/Validacion";
+import Validation from "@/pages/Validation";
 import { Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import MyDonations from "@/pages/MyDonations";
@@ -23,7 +23,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
-      <Route path="/auth/validation" element={<Validacion />} />
+      <Route path="/auth/validation" element={<Validation />} />
       <Route path="/explorar" element={<Explorar />} />
       <Route path="/tendencias" element={<Tendencias />} />
       <Route path="/campana/:id" element={<Campana />} />
