@@ -22,7 +22,7 @@ provider:
             - sqs:DeleteMessage
             - sqs:GetQueueAttributes
           Resource:
-            - arn:aws:sqs:us-east-2:676480496543:sembramos-kyc-queue-dev
+            - arn:aws:sqs:us-east-2:676480496543:sembramos-identity-profile-service-verification-queue
 
 plugins:
   - serverless-python-requirements
@@ -45,6 +45,6 @@ functions:
     description: Consume documentos KYC desde SQS, los analiza con Gemini y actualiza MariaDB
     events:
       - sqs:
-          arn: arn:aws:sqs:us-east-2:676480496543:sembramos-kyc-queue-dev
+          arn: arn:aws:sqs:us-east-2:676480496543:sembramos-identity-profile-service-verification-queue
           batchSize: 1
           functionResponseType: ReportBatchItemFailures
