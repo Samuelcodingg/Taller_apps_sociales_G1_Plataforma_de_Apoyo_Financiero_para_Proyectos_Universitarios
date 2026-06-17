@@ -4,7 +4,7 @@ import { app } from './app';
 
 const serverlessHandler = serverless(app);
 
-export const handler = (event: unknown, context: Context) => {
+export const handler = (event: Parameters<typeof serverlessHandler>[0], context: Context) => {
 	// No esperar a que el event loop se vacie antes de devolver la respuesta.
 	// El cliente SQS mantiene sockets keep-alive abiertos que, de lo contrario,
 	// dejarian a la Lambda colgada hasta el timeout (API Gateway responde 503).
