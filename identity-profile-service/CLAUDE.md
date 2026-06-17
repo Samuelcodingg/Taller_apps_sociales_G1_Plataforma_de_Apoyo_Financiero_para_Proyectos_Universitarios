@@ -79,3 +79,6 @@ El schema (`prisma/schema.prisma`) se genera por **introspección** (`prisma db 
 
 ## Documentación de la API
 La spec OpenAPI 3.0 está en `src/docs/openapi.ts` (mantenida a mano) y se sirve con `swagger-ui-express` en `GET /api/docs` (UI) y `GET /api/docs.json` (JSON crudo). Al agregar/cambiar endpoints, actualiza ese archivo.
+
+
+                                                     

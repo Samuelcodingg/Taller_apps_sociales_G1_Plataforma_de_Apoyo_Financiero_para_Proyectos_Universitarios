@@ -6,10 +6,16 @@ export const openapiSpec: OpenAPIV3.Document = {
 	openapi: '3.0.3',
 	info: {
 		title: 'Identity & Profile Service API',
-		version: '1.0.0',
+		version: '1.1.0',
 		description:
 			'Microservicio de identidad y autenticacion de la plataforma de apoyo financiero ' +
-			'para proyectos universitarios. Gestiona registro, login y refresco de tokens.',
+			'para proyectos universitarios. Gestiona registro, login y refresco de tokens, el ' +
+			'perfil del usuario y la verificacion de identidad (KYC).\n\n' +
+			'La verificacion KYC es **asincrona**: al subir el documento se crea un registro en ' +
+			'estado `PENDING` y se publica un evento en AWS SQS. Un servicio de IA ' +
+			'(`ai-analytics-service`) consume ese evento, analiza el documento con Google Gemini ' +
+			'y actualiza el estado a `APPROVED` o `REJECTED`. Consulta el resultado con ' +
+			'`GET /api/verification/status`.',
 	},
 	servers: [
 		{ url: 'https://ywf61bjrme.execute-api.us-east-2.amazonaws.com', description: 'AWS (API Gateway)' },
@@ -19,7 +25,12 @@ export const openapiSpec: OpenAPIV3.Document = {
 		{ name: 'Health', description: 'Estado del servicio' },
 		{ name: 'Auth', description: 'Autenticacion y registro de usuarios' },
 		{ name: 'Profile', description: 'Gestion del perfil del usuario' },
-		{ name: 'Verification', description: 'Verificacion de identidad (KYC)' },
+		{
+			name: 'Verification',
+			description:
+				'Verificacion de identidad (KYC). El procesamiento es asincrono: tras subir el ' +
+				'documento, un servicio de IA lo analiza y actualiza el estado.',
+		},
 	],
 	paths: {
 		'/api/health': {
@@ -197,6 +208,14 @@ export const openapiSpec: OpenAPIV3.Document = {
 			post: {
 				tags: ['Verification'],
 				summary: 'Envia la URL del documento KYC y crea una verificacion PENDING',
+				description:
+					'Crea la verificacion en estado `PENDING` y publica un evento en SQS para que el ' +
+					'servicio de IA procese el documento de forma asincrona. La respuesta `201` es ' +
+					'inmediata; el resultado (`APPROVED`/`REJECTED`) se consulta luego en ' +
+					'`GET /api/verification/status`.\n\n' +
+					'**Importante:** `documentUrl` debe apuntar a un archivo **descargable** por el ' +
+					'servicio de IA (p. ej. una URL prefirmada de S3). Una URL inaccesible o privada ' +
+					'hara que la verificacion termine en `REJECTED`.',
 				security: [{ bearerAuth: [] }],
 				requestBody: {
 					required: true,
