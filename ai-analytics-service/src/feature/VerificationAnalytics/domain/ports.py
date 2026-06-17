@@ -16,7 +16,7 @@ class IVerificationRepository(ABC):
     @abstractmethod
     def approve(
         self,
-        id_verification: int,
+        id_verification: str,
         extracted_data: ExtractedData,
         reviewed_by: str,
     ) -> None:
@@ -26,7 +26,7 @@ class IVerificationRepository(ABC):
     @abstractmethod
     def reject(
         self,
-        id_verification: int,
+        id_verification: str,
         rejection_reason: str,
         reviewed_by: str,
     ) -> None:

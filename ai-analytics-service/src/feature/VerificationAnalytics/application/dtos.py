@@ -12,8 +12,8 @@ from dataclasses import dataclass
 class ProcessKycCommand:
     """Comando de entrada para el caso de uso de procesamiento KYC."""
 
-    verification_id: int
-    account_id: int
+    verification_id: str
+    account_id: str
     document_url: str
 
     @classmethod
@@ -21,6 +21,7 @@ class ProcessKycCommand:
         """Construye el comando a partir del cuerpo (JSON) de un mensaje SQS.
 
         Acepta tanto camelCase como snake_case por robustez frente a productores.
+        Los IDs son UUID (Char(36)) en la BD, por eso se tratan como str.
         """
         verification_id = payload.get("verificationId", payload.get("verification_id"))
         account_id = payload.get("accountId", payload.get("account_id"))
@@ -32,8 +33,8 @@ class ProcessKycCommand:
             raise ValueError("Falta 'documentUrl' en el mensaje SQS")
 
         return cls(
-            verification_id=int(verification_id),
-            account_id=int(account_id) if account_id is not None else 0,
+            verification_id=str(verification_id),
+            account_id=str(account_id) if account_id is not None else "",
             document_url=str(document_url),
         )
 
@@ -42,6 +43,6 @@ class ProcessKycCommand:
 class ProcessKycResult:
     """Resultado del caso de uso, útil para logging y tests."""
 
-    verification_id: int
+    verification_id: str
     approved: bool
     reason: str | None = None

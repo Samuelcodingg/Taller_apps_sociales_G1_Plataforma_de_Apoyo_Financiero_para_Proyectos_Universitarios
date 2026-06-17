@@ -66,8 +66,8 @@ class ExtractedData:
 class Verification:
     """Agregado raíz: una solicitud de verificación KYC."""
 
-    id_verification: int
-    account_id: Optional[int] = None
+    id_verification: str
+    account_id: Optional[str] = None
     document_url: Optional[str] = None
     status: VerificationStatus = VerificationStatus.PENDING
     extracted_data: Optional[ExtractedData] = None

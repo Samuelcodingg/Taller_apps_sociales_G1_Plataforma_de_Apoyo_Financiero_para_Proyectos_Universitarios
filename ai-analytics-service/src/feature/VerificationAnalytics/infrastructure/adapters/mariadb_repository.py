@@ -53,7 +53,7 @@ class MariaDBVerificationRepository(IVerificationRepository):
 
     def approve(
         self,
-        id_verification: int,
+        id_verification: str,
         extracted_data: ExtractedData,
         reviewed_by: str,
     ) -> None:
@@ -67,7 +67,7 @@ class MariaDBVerificationRepository(IVerificationRepository):
 
     def reject(
         self,
-        id_verification: int,
+        id_verification: str,
         rejection_reason: str,
         reviewed_by: str,
     ) -> None:
@@ -82,7 +82,7 @@ class MariaDBVerificationRepository(IVerificationRepository):
     def _update(
         self,
         *,
-        id_verification: int,
+        id_verification: str,
         status: str,
         extracted_data: Optional[str],
         rejection_reason: Optional[str],
