@@ -1,0 +1,122 @@
+openapi: 3.0.3
+
+# ---------------------------------------------------------------------------
+# NOTA IMPORTANTE
+# Este servicio NO expone endpoints HTTP. Es un consumidor ASINCRONO de AWS SQS:
+# se dispara solo cuando llega un mensaje a la cola y procesa documentos KYC con
+# Google Gemini. Por eso el bloque `paths` esta vacio a proposito.
+#
+# Este documento OpenAPI sirve como contrato/documentacion del MENSAJE que el
+# servicio consume y del efecto que produce en la base de datos. El contrato del
+# evento (lo que normalmente se documentaria con AsyncAPI) se modela aqui bajo
+# `components/schemas` para poder visualizarlo con Swagger UI.
+# ---------------------------------------------------------------------------
+
+info:
+  title: AI Analytics Service (KYC) — Contrato asincrono
+  version: 1.0.0
+  description: |
+    Microservicio de analitica con IA de la plataforma de apoyo financiero para
+    proyectos universitarios. **No tiene API HTTP**: es una funcion AWS Lambda
+    suscrita a una cola SQS que procesa verificaciones de identidad (KYC).
+
+    ## Flujo
+    1. `identity-profile-service` recibe `POST /api/verification/upload`, guarda la
+       verificacion en estado `PENDING` y publica un evento en la cola SQS
+       `sembramos-identity-profile-service-verification-queue`.
+    2. **Este servicio** (`ai-analytics-service`, funcion `processKyc`) consume el
+       mensaje, descarga el documento desde `documentUrl`, lo envia a Google Gemini
+       para extraer los datos del carnet y actualiza el registro en MariaDB.
+    3. El estado pasa a `APPROVED` (datos completos) o `REJECTED` (fallo de descarga,
+       extraccion incompleta o error de persistencia).
+
+    ## Reporte de fallos a SQS
+    El handler usa `ReportBatchItemFailures`: si no logra ni siquiera persistir el
+    rechazo (p. ej. BD inalcanzable), devuelve el `messageId` en `batchItemFailures`
+    para que SQS reintente el mensaje.
+
+    ## Requisitos de entorno
+    - `DATABASE_URL` — conexion MariaDB (la Lambda debe alcanzar la BD).
+    - `GEMINI_API_KEY` — clave de Google Gemini.
+    - `LOG_LEVEL` — opcional, por defecto `INFO`.
+
+tags:
+  - name: Async (SQS)
+    description: Contrato del mensaje consumido desde SQS. No son llamadas HTTP.
+
+# Sin endpoints HTTP: este servicio solo se invoca por eventos SQS.
+paths: {}
+
+components:
+  schemas:
+
+    KycVerificationMessage:
+      type: object
+      description: |
+        Cuerpo (JSON) del mensaje SQS que dispara el procesamiento KYC. Lo publica
+        `identity-profile-service`. El servicio acepta tanto camelCase como
+        snake_case. Los IDs son UUID (Char(36) en la BD), por eso son strings.
+      required:
+        - verificationId
+        - documentUrl
+      properties:
+        verificationId:
+          type: string
+          description: UUID de la verificacion a actualizar (PK en la tabla `verification`).
+          example: '7747850a-f195-4d1a-b9a1-6b69e6040a75'
+        accountId:
+          type: string
+          description: UUID de la cuenta dueña del documento. Opcional.
+          example: '51379fb5-dccd-40a0-bd5b-fa10fd8118c9'
+        documentUrl:
+          type: string
+          format: uri
+          description: |
+            URL **descargable** del documento KYC (PDF o imagen). Debe ser accesible
+            por la Lambda (p. ej. URL prefirmada de S3). Una URL privada/inexistente
+            produce un 403/404 y la verificacion termina en `REJECTED`.
+          example: 'https://mi-bucket.s3.amazonaws.com/kyc/abc.pdf?X-Amz-Signature=...'
+
+    ExtractedData:
+      type: object
+      description: Datos estructurados que Gemini extrae del documento.
+      properties:
+        nombres:
+          type: string
+          example: 'Diego Salvador'
+        apellidos:
+          type: string
+          example: 'Linares Mostacero'
+        universidad:
+          type: string
+          example: 'Universidad Nacional Mayor de San Marcos'
+        codigo_estudiante:
+          type: string
+          example: '20200123'
+
+    ProcessingResult:
+      type: object
+      description: |
+        Resultado logico del procesamiento (no es una respuesta HTTP; describe el
+        efecto en la tabla `verification`).
+      properties:
+        verificationId:
+          type: string
+          example: '7747850a-f195-4d1a-b9a1-6b69e6040a75'
+        status:
+          type: string
+          enum: [APPROVED, REJECTED]
+          example: APPROVED
+        extractedData:
+          allOf:
+            - $ref: '#/components/schemas/ExtractedData'
+          nullable: true
+          description: Presente solo si `status = APPROVED`.
+        rejectionReason:
+          type: string
+          nullable: true
+          description: Motivo del rechazo si `status = REJECTED`.
+          example: "HTTPError: 403 Client Error: Forbidden for url ..."
+        reviewedBy:
+          type: string
+          example: 'GEMINI_AI'
