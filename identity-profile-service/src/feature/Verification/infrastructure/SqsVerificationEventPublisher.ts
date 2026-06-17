@@ -1,4 +1,5 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { config } from '../../../shared/config';
 import {
 	IVerificationEventPublisher,
@@ -13,7 +14,20 @@ export class SqsVerificationEventPublisher implements IVerificationEventPublishe
 	private readonly queueUrl: string | undefined;
 
 	constructor(client?: SQSClient) {
-		this.client = client ?? new SQSClient({ region: config.aws.region });
+		this.client =
+			client ??
+			new SQSClient({
+				region: config.aws.region,
+				// Limita los reintentos y pone timeouts de conexion/respuesta para que
+				// un endpoint de SQS que no responde NO cuelgue la peticion HTTP hasta el
+				// timeout de la Lambda (30s). Si SQS no contesta, abortamos rapido, el
+				// caso de uso captura el error y devuelve 201 igual.
+				maxAttempts: 2,
+				requestHandler: new NodeHttpHandler({
+					connectionTimeout: 2000,
+					requestTimeout: 3000,
+				}),
+			});
 		this.queueUrl = config.aws.verificationQueueUrl;
 	}
 
