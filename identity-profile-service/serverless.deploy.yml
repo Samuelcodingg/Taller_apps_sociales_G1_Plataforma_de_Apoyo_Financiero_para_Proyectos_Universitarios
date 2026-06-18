@@ -63,6 +63,9 @@ provider:
     # URL de la cola SQS creada en el bloque resources (Ref devuelve la URL).
     VERIFICATION_QUEUE_URL:
       Ref: VerificationQueue
+    # Bucket S3 donde se guardan los documentos KYC subidos por los usuarios.
+    KYC_BUCKET:
+      Ref: KycBucket
   iam:
     role:
       statements:
@@ -72,6 +75,13 @@ provider:
             - sqs:SendMessage
           Resource:
             Fn::GetAtt: [VerificationQueue, Arn]
+        # Permite subir el documento KYC y generar URLs prefirmadas de descarga.
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:GetObject
+          Resource:
+            Fn::Sub: '${KycBucket.Arn}/*'
 
 functions:
   api:
@@ -91,4 +101,14 @@ resources:
         # Retiene los mensajes hasta 4 dias si nadie los consume aun.
         MessageRetentionPeriod: 345600
 
-        # Forzando el despliegue para crear la cola SQS de KYC
+    # Bucket PRIVADO para los documentos KYC. El acceso es solo via URLs
+    # prefirmadas; bloqueamos todo acceso publico.
+    KycBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-kyc-documents
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true

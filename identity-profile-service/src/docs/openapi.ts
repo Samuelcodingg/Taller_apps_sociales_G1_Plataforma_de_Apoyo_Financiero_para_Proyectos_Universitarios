@@ -79,21 +79,33 @@ export const openapiSpec: OpenAPIV3.Document = {
 		'/api/auth/register/creator': {
 			post: {
 				tags: ['Auth'],
-				summary: 'Registra un nuevo usuario con rol CREATOR',
+				summary: 'Registra un nuevo usuario con rol CREATOR (y opcionalmente sube su documento KYC)',
+				description:
+					'Acepta dos formatos:\n' +
+					'- `application/json` con `{ email, password }` (registro simple).\n' +
+					'- `multipart/form-data` con `email`, `password` y un archivo (PDF/imagen). ' +
+					'En este caso, ademas de registrar, sube el documento a S3 y crea una ' +
+					'verificacion KYC en estado `PENDING`, que se procesa de forma asincrona.\n\n' +
+					'El campo del archivo puede tener cualquier nombre (se toma el primero recibido).',
 				requestBody: {
 					required: true,
 					content: {
 						'application/json': {
 							schema: { $ref: '#/components/schemas/CredentialsInput' },
 						},
+						'multipart/form-data': {
+							schema: { $ref: '#/components/schemas/RegisterCreatorMultipart' },
+						},
 					},
 				},
 				responses: {
 					'201': {
-						description: 'Usuario creado y autenticado',
+						description:
+							'Usuario creado y autenticado. Si se envio documento, incluye la ' +
+							'verificacion KYC creada.',
 						content: {
 							'application/json': {
-								schema: { $ref: '#/components/schemas/AuthResult' },
+								schema: { $ref: '#/components/schemas/RegisterCreatorResult' },
 							},
 						},
 					},
@@ -301,6 +313,35 @@ export const openapiSpec: OpenAPIV3.Document = {
 					refreshToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
 					user: { $ref: '#/components/schemas/PublicUser' },
 				},
+			},
+			RegisterCreatorMultipart: {
+				type: 'object',
+				required: ['email', 'password'],
+				properties: {
+					email: { type: 'string', format: 'email', example: 'usuario@ejemplo.com' },
+					password: { type: 'string', format: 'password', example: 'MiPassword123' },
+					document: {
+						type: 'string',
+						format: 'binary',
+						description: 'Documento KYC (PDF o imagen). Opcional; el nombre del campo es libre.',
+					},
+				},
+			},
+			RegisterCreatorResult: {
+				allOf: [
+					{ $ref: '#/components/schemas/AuthResult' },
+					{
+						type: 'object',
+						properties: {
+							verification: {
+								description:
+									'Verificacion KYC creada si se envio documento; null en caso contrario.',
+								nullable: true,
+								allOf: [{ $ref: '#/components/schemas/Verification' }],
+							},
+						},
+					},
+				],
 			},
 			ErrorResponse: {
 				type: 'object',

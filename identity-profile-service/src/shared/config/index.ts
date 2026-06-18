@@ -12,6 +12,10 @@ export interface JwtConfig {
 export interface AwsConfig {
 	region: string;
 	verificationQueueUrl: string | undefined;
+	kycBucket: string | undefined;
+	// Vigencia (segundos) de la URL prefirmada de descarga del documento KYC que
+	// se envia al servicio de IA. Debe cubrir el tiempo de procesamiento + reintentos.
+	documentUrlTtlSeconds: number;
 }
 
 export interface AppConfig {
@@ -31,6 +35,8 @@ export const config: AppConfig = {
 	aws: {
 		region: process.env.AWS_REGION ?? 'us-east-2',
 		verificationQueueUrl: process.env.VERIFICATION_QUEUE_URL,
+		kycBucket: process.env.KYC_BUCKET,
+		documentUrlTtlSeconds: Number(process.env.DOCUMENT_URL_TTL_SECONDS ?? 86400),
 	},
 };
 
