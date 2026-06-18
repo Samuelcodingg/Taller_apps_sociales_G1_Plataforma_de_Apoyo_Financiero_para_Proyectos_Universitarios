@@ -40,9 +40,11 @@ def _build_usecase() -> ProcessKycUseCase:
     database_url = os.environ["DATABASE_URL"]
     gemini_api_key = os.environ["GEMINI_API_KEY"]
 
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
     repository = MariaDBVerificationRepository(database_url)
     downloader = HttpDocumentDownloader()
-    llm_service = GeminiAIService(gemini_api_key)
+    llm_service = GeminiAIService(gemini_api_key, model_name=gemini_model)
 
     return ProcessKycUseCase(
         repository=repository,

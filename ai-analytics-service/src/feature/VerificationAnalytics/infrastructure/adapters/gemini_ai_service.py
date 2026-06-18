@@ -33,7 +33,7 @@ _EXTRACTION_PROMPT = (
 class GeminiAIService(ILLMService):
     """Extrae datos KYC estructurados usando Gemini."""
 
-    def __init__(self, api_key: str, *, model_name: str = "gemini-2.0-flash") -> None:
+    def __init__(self, api_key: str, *, model_name: str = "gemini-2.5-flash") -> None:
         if not api_key:
             raise ValueError("GEMINI_API_KEY es requerida para GeminiAIService")
         genai.configure(api_key=api_key)
