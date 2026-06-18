@@ -38,6 +38,7 @@ info:
     ## Requisitos de entorno
     - `DATABASE_URL` — conexion MariaDB (la Lambda debe alcanzar la BD).
     - `GEMINI_API_KEY` — clave de Google Gemini.
+    - `GEMINI_MODEL` — opcional, modelo de Gemini a usar. Por defecto `gemini-2.5-flash`.
     - `LOG_LEVEL` — opcional, por defecto `INFO`.
 
 tags:
