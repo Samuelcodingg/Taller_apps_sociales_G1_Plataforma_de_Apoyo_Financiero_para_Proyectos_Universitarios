@@ -5,6 +5,7 @@ import { Bell } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { RootState } from "@/store/store";
 import { useSelector } from "react-redux";
+import { getInitialsNames } from "@/lib/utils";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -32,7 +33,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 </button>
                 <Avatar className="h-9 w-9 ring-2 ring-primary/20">
                   <AvatarFallback className="bg-gradient-warm text-primary-foreground text-sm">
-                    MF
+                    {getInitialsNames(user.names, user.lastNames)}
                   </AvatarFallback>
                 </Avatar>
               </div>

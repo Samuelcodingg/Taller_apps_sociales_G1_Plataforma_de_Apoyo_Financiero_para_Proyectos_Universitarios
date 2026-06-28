@@ -23,7 +23,7 @@ export const apiSlice = createApi({
 
         formData.append("email", data.email);
         formData.append("password", data.password);
-        formData.append("accountType", data.accountType);
+        // formData.append("accountType", data.accountType);
         formData.append("document", data.document);
 
         return {
@@ -55,7 +55,7 @@ export const apiSlice = createApi({
 
     refreshToken: builder.mutation<RefreshResponse, { refreshToken: string }>({
       query: (data) => ({
-        url: "/api/auth/refresh",
+        url: "/api/auth/refresh-token",
         method: "POST",
         body: data,
       }),

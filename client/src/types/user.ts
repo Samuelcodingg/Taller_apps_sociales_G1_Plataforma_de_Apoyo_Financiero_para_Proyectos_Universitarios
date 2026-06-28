@@ -8,6 +8,9 @@ export type User = {
   email: string;
   role: Role;
   university?: string;
+  major?: string;
+  birthDate?: string;
+  country?: string;
   provider: AuthProvider;
   createdAt: string;
 } | null;

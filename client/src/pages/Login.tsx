@@ -77,7 +77,7 @@ const Login = ({ value }: LoginProps) => {
           <Input
             id="email"
             type="email"
-            placeholder="tu.nombre@uni.edu.pe"
+            placeholder="tu.correo@ejemplo.com"
             disabled={isLoading}
             {...register("email")}
             required

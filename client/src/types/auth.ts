@@ -31,7 +31,7 @@ export type LoginResponse = {
 };
 
 export type RegisterDonorRequest = {
-  accountType: AccountType;
+  // accountType: AccountType;
   names: string;
   lastNames: string;
   email: string;
@@ -45,7 +45,7 @@ export type RegisterDonorResponse = {
 };
 
 export type RegisterCreatorRequest = {
-  accountType: AccountType;
+  // accountType: AccountType;
   email: string;
   password: string;
   document: File;

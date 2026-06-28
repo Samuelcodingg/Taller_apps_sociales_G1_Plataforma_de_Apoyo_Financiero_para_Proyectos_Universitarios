@@ -13,7 +13,7 @@ import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/store/store";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
-const Validacion = () => {
+const Validation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
@@ -88,6 +88,8 @@ const Validacion = () => {
       localStorage.setItem("refreshToken", response.refreshToken);
 
       toast.success("Registro completado");
+
+      console.log("Respuesta del back: ", response);
 
       navigate("/");
     } catch (error) {
@@ -165,4 +167,4 @@ const Validacion = () => {
   );
 };
 
-export default Validacion;
+export default Validation;
