@@ -89,6 +89,8 @@ const Validation = () => {
 
       toast.success("Registro completado");
 
+      console.log("Respuesta del back: ", response);
+
       navigate("/");
     } catch (error) {
       console.error("Error: ", error);
