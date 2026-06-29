@@ -27,6 +27,7 @@ import {
   useRecordViewMutation,
 } from "@/slices/apiSlice";
 import { getErrorMessage } from "@/lib/getErrorMessage";
+import { safeImageUrl } from "@/lib/mapCampaign";
 
 const PLACEHOLDER_IMAGE = "https://placehold.co/1024x576?text=Campa%C3%B1a";
 
@@ -101,7 +102,7 @@ const Campana = () => {
   const raised = c.currentAmount;
   const goal = c.goalAmount;
   const pct = goal > 0 ? Math.min(100, Math.round((raised / goal) * 100)) : 0;
-  const cover = c.media[0]?.url ?? PLACEHOLDER_IMAGE;
+  const cover = safeImageUrl(c.media[0]?.url) ?? PLACEHOLDER_IMAGE;
   const daysLeft = Math.max(0, Math.ceil((+new Date(c.endDate) - Date.now()) / 86400000));
 
   const donate = async () => {
@@ -293,7 +294,7 @@ const Campana = () => {
                   <div className="text-xs text-muted-foreground">{new Date(u.createdAt).toLocaleDateString("es-PE")}</div>
                   {u.title && <h3 className="font-semibold mt-1">{u.title}</h3>}
                   {u.message && <p className="text-sm text-muted-foreground mt-2">{u.message}</p>}
-                  {u.imageUrl && (
+                  {u.imageUrl && safeImageUrl(u.imageUrl) === u.imageUrl && (
                     <img src={u.imageUrl} alt="Foto de la actualización" className="mt-3 rounded-lg max-h-80 w-auto object-cover" />
                   )}
                 </Card>
