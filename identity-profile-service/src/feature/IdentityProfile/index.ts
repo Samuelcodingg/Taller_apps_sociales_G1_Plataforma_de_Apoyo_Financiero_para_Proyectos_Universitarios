@@ -69,6 +69,17 @@ const registerCreatorHandler = async (
 			throw new ValidationError('Debes enviar email y password como texto.');
 		}
 
+		// VALIDACION DE UNIVERSIDAD: la matricula debe pertenecer a una universidad
+		// reconocida. La universidad se deriva del dominio del correo institucional;
+		// si el dominio no esta en la lista, rechazamos con 400 SIN crear la cuenta.
+		const university = universityFromEmail(email);
+		if (!university) {
+			throw new ValidationError(
+				'La matricula no es valida: el correo no pertenece a una universidad reconocida. ' +
+					'Usa tu correo institucional (p. ej. @unmsm.edu.pe, @pucp.edu.pe, @uni.edu.pe).',
+			);
+		}
+
 		// VALIDACION DEL PDF ANTES DE CREAR LA CUENTA. El archivo puede llegar bajo
 		// cualquier nombre de campo: tomamos el primero. Si el PDF es invalido (o
 		// falta), PdfDocument.create lanza y respondemos 400 SIN crear la cuenta,
@@ -130,7 +141,7 @@ const registerCreatorHandler = async (
 				fullName: matricula.fullName,
 				names: matricula.names,
 				surnames: matricula.surnames,
-				university: universityFromEmail(email),
+				university,
 				faculty: matricula.faculty,
 				school: matricula.school,
 			},
