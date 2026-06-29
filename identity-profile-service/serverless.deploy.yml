@@ -46,6 +46,37 @@ package:
     - '!node_modules/serverless-offline/**'
     - '!node_modules/prisma/**'
 
+    # --- Peso innecesario en runtime (reduce el unzipped size de la Lambda) ---
+    # El SDK de AWS v3 (@aws-sdk/@smithy) ya viene incluido en el runtime
+    # nodejs20.x de Lambda, no hace falta empaquetarlo.
+    - '!node_modules/@aws-sdk/**'
+    - '!node_modules/@smithy/**'
+    # pdf-parse v2 ya trae pdfjs incrustado en su bundle CJS (dist/.../index.cjs),
+    # asi que el paquete pdfjs-dist no se requiere en runtime. (@napi-rs/canvas SI
+    # se necesita: aporta el polyfill de DOMMatrix que usa getText()).
+    - '!node_modules/pdfjs-dist/**'
+
+    # --- Prisma 7: adelgazamiento del runtime ---
+    # El runtime de @prisma/client embebe compiladores WASM para TODAS las BD
+    # (postgres, sqlserver, cockroach, sqlite, mysql) en variantes fast/small y
+    # js/mjs (~70 MB). Solo usamos MySQL/MariaDB; fuera el resto.
+    - '!node_modules/@prisma/client/runtime/query_compiler_*_bg.postgresql.*'
+    - '!node_modules/@prisma/client/runtime/query_compiler_*_bg.sqlserver.*'
+    - '!node_modules/@prisma/client/runtime/query_compiler_*_bg.cockroachdb.*'
+    - '!node_modules/@prisma/client/runtime/query_compiler_*_bg.sqlite.*'
+    # Paquetes que el CLI 'prisma' arrastra (Prisma Studio con React, dev tools,
+    # effect/electric-sql via @prisma/config) y que NO se usan en runtime. npm los
+    # deja como "prod" por el peer opcional de @prisma/client, pero el runtime real
+    # solo necesita @prisma/client(+runtime-utils) y @prisma/adapter-mariadb.
+    - '!node_modules/@prisma/studio-core/**'
+    - '!node_modules/@prisma/dev/**'
+    - '!node_modules/effect/**'
+    - '!node_modules/@electric-sql/**'
+    - '!node_modules/react/**'
+    - '!node_modules/react-dom/**'
+    - '!node_modules/chart.js/**'
+    - '!node_modules/@radix-ui/**'
+
     # --- Purga critica de Prisma: fuera TODOS los engines binarios ---
     - '!node_modules/@prisma/engines/**'
     - '!node_modules/.prisma/client/libquery_engine-*'
