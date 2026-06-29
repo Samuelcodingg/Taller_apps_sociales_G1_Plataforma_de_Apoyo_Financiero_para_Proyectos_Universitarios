@@ -46,10 +46,8 @@ package:
     - '!node_modules/serverless-offline/**'
     - '!node_modules/prisma/**'
 
-    # --- Peso innecesario en runtime (reduce el unzipped size de la Lambda) ---
-    # El SDK de AWS v3 ya viene incluido en el runtime nodejs20.x de Lambda.
-    - '!node_modules/@aws-sdk/**'
-    - '!node_modules/@smithy/**'
+    # NOTA: @aws-sdk/@smithy SI se empaquetan (el codigo los importa en el
+    # arranque para S3; el runtime no los provee de forma fiable). Hay margen.
 
     # --- Prisma 7: adelgazamiento del runtime ---
     # El runtime de @prisma/client embebe compiladores WASM para TODAS las BD

@@ -46,11 +46,11 @@ package:
     - '!node_modules/serverless-offline/**'
     - '!node_modules/prisma/**'
 
-    # --- Peso innecesario en runtime (reduce el unzipped size de la Lambda) ---
-    # El SDK de AWS v3 (@aws-sdk/@smithy) ya viene incluido en el runtime
-    # nodejs20.x de Lambda, no hace falta empaquetarlo.
-    - '!node_modules/@aws-sdk/**'
-    - '!node_modules/@smithy/**'
+    # NOTA: @aws-sdk/@smithy SI se empaquetan. El runtime de Lambda no provee de
+    # forma fiable todos los subpaquetes que usamos (p. ej. s3-request-presigner),
+    # y el codigo los importa en el arranque (S3/SQS), asi que excluirlos rompia
+    # el init de la Lambda. Hay margen de tamano de sobra para incluirlos.
+
     # pdf-parse v2 ya trae pdfjs incrustado en su bundle CJS (dist/.../index.cjs),
     # asi que el paquete pdfjs-dist no se requiere en runtime. (@napi-rs/canvas SI
     # se necesita: aporta el polyfill de DOMMatrix que usa getText()).
