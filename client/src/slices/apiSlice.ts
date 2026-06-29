@@ -20,7 +20,7 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Profile", "Campaigns", "Donations", "Notifications"],
+  tagTypes: ["Profile", "Campaigns", "Donations", "Notifications", "AdminUsers"],
   endpoints: (builder) => ({
     registerCreator: builder.mutation<
       RegisterCreatorResponse,
@@ -275,8 +275,79 @@ export const apiSlice = createApi({
         method: "POST",
       }),
     }),
+
+    // --- Admin (panel de administracion, solo rol ADMIN) ---
+    adminUsers: builder.query<
+      AdminUserListItem[],
+      { search?: string; type?: string; sort?: string } | void
+    >({
+      query: (params) => {
+        const q = new URLSearchParams();
+        if (params?.search) q.set("search", params.search);
+        if (params?.type) q.set("type", params.type);
+        if (params?.sort) q.set("sort", params.sort);
+        const qs = q.toString();
+        return { url: `/api/admin/users${qs ? `?${qs}` : ""}`, method: "GET" };
+      },
+      providesTags: ["AdminUsers"],
+    }),
+
+    adminUserDetail: builder.query<AdminUserDetail, string>({
+      query: (id) => ({ url: `/api/admin/users/${id}`, method: "GET" }),
+    }),
+
+    adminCreateUser: builder.mutation<
+      AdminUserListItem,
+      { email: string; password: string; role: string; names?: string; surnames?: string }
+    >({
+      query: (body) => ({ url: "/api/admin/users", method: "POST", body }),
+      invalidatesTags: ["AdminUsers"],
+    }),
+
+    adminUpdateUser: builder.mutation<
+      AdminUserListItem,
+      { id: string; data: { email?: string; role?: string; names?: string; surnames?: string } }
+    >({
+      query: ({ id, data }) => ({ url: `/api/admin/users/${id}`, method: "PUT", body: data }),
+      invalidatesTags: ["AdminUsers"],
+    }),
+
+    adminDeleteUser: builder.mutation<void, string>({
+      query: (id) => ({ url: `/api/admin/users/${id}`, method: "DELETE" }),
+      invalidatesTags: ["AdminUsers"],
+    }),
   }),
 });
+
+// Tipos del panel de administracion.
+export type AdminUserListItem = {
+  id: string;
+  email: string;
+  names: string;
+  surnames: string;
+  role: string;
+  createdAt: string;
+  lastLoginAt: string | null;
+};
+
+export type AdminUserDetail = AdminUserListItem & {
+  campaigns: Array<{
+    id: string;
+    title: string;
+    status: string;
+    goalAmount: number;
+    currentAmount: number;
+    createdAt: string;
+  }>;
+  donations: Array<{
+    id: string;
+    amount: number;
+    campaignTitle: string | null;
+    status: string;
+    isAnonymous: boolean;
+    createdAt: string;
+  }>;
+};
 
 export const {
   useRegisterCreatorMutation,
@@ -301,4 +372,9 @@ export const {
   usePersonalizedFeedQuery,
   useTrendingQuery,
   useRecordViewMutation,
+  useAdminUsersQuery,
+  useAdminUserDetailQuery,
+  useAdminCreateUserMutation,
+  useAdminUpdateUserMutation,
+  useAdminDeleteUserMutation,
 } = apiSlice;

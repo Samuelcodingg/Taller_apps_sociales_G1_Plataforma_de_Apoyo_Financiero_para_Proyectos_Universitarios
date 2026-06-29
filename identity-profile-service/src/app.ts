@@ -5,6 +5,7 @@ import { LocalDocumentStorage } from './feature/Verification/infrastructure/Loca
 import { identityProfileRouter } from './feature/IdentityProfile';
 import { profileRouter } from './feature/Profile';
 import { verificationRouter } from './feature/Verification';
+import { adminRouter } from './feature/Admin';
 import { openapiSpec } from './docs/openapi';
 
 const app = express();
@@ -27,5 +28,6 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 app.use('/api/auth', identityProfileRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/verification', verificationRouter);
+app.use('/api/admin', adminRouter);
 
 export { app };

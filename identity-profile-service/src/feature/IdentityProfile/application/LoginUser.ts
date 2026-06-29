@@ -44,6 +44,9 @@ export class LoginUser {
 				expiresAt: this.tokenService.getRefreshTokenExpiryDate(),
 			});
 
+			// Registra la fecha de ultimo inicio de sesion (panel de administracion).
+			await this.authRepository.updateLastLogin(user.id);
+
 			return {
 				user: toPublicUser(user),
 				...tokens,

@@ -72,6 +72,13 @@ export class AuthRepository implements IAuthRepository {
 		void input;
 	}
 
+	async updateLastLogin(userId: string): Promise<void> {
+		await this.prisma.account.update({
+			where: { id: userId },
+			data: { last_login_at: new Date() },
+		});
+	}
+
 	async findUserByRefreshToken(token: string): Promise<User | null> {
 		const decoded = jwt.decode(token) as JwtPayload | null;
 		const rawUserId = decoded?.userId;

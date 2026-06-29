@@ -12,6 +12,7 @@ export interface IAuthRepository {
 	createLocalUser(input: CreateLocalUserInput): Promise<User>;
 	createOAuthUser(input: CreateOAuthUserInput): Promise<User>;
 	storeRefreshToken(input: StoreRefreshTokenInput): Promise<void>;
+	updateLastLogin(userId: string): Promise<void>;
 	findUserByRefreshToken(token: string): Promise<User | null>;
 	revokeRefreshToken(token: string): Promise<void>;
 }
