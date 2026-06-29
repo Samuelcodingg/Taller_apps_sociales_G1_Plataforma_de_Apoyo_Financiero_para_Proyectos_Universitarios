@@ -30,6 +30,9 @@ class ExtractedData:
     apellidos: str
     universidad: str
     codigo_estudiante: str
+    # Escuela profesional (E.P.). Opcional: no siempre aparece de forma legible
+    # en el reporte, asi que no se exige para considerar la extraccion completa.
+    escuela: str = ""
 
     def is_complete(self) -> bool:
         """Indica si todos los campos requeridos fueron extraídos con contenido."""
@@ -49,6 +52,7 @@ class ExtractedData:
             "apellidos": self.apellidos,
             "universidad": self.universidad,
             "codigo_estudiante": self.codigo_estudiante,
+            "escuela": self.escuela,
         }
 
     @classmethod
@@ -59,6 +63,7 @@ class ExtractedData:
             apellidos=str(data.get("apellidos", "") or "").strip(),
             universidad=str(data.get("universidad", "") or "").strip(),
             codigo_estudiante=str(data.get("codigo_estudiante", "") or "").strip(),
+            escuela=str(data.get("escuela", "") or "").strip(),
         )
 
 

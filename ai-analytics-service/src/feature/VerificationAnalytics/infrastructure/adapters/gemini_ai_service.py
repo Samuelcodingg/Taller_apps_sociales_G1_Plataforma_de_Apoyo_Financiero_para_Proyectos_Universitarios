@@ -18,13 +18,17 @@ _EXTRACTION_PROMPT = (
     "los datos del estudiante.\n\n"
     "Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin "
     "explicaciones y sin bloques de código markdown. El JSON debe tener "
-    "EXACTAMENTE estas cuatro llaves:\n"
+    "EXACTAMENTE estas cinco llaves:\n"
     "{\n"
     '  "nombres": "...",\n'
     '  "apellidos": "...",\n'
     '  "universidad": "...",\n'
-    '  "codigo_estudiante": "..."\n'
+    '  "codigo_estudiante": "...",\n'
+    '  "escuela": "..."\n'
     "}\n\n"
+    "La 'escuela' es la Escuela Profesional o E.P. del estudiante (por ejemplo "
+    "'Ingeniería de Software'); si el documento muestra 'E.P. de ...' toma el "
+    "nombre que sigue. "
     "Si algún dato no aparece en el documento, usa una cadena vacía para esa llave. "
     "No inventes información."
 )

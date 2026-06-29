@@ -50,9 +50,18 @@ export class ProfileRepository implements IProfileRepository {
 		});
 		const withData = verifications.find((v) => v.extracted_data);
 		const data = (withData?.extracted_data ?? {}) as Record<string, unknown>;
+		// Acepta tanto las llaves que escribe identity (university/school) como las
+		// que escribe el servicio de IA en español (universidad/escuela).
+		const pick = (...keys: string[]): string | null => {
+			for (const k of keys) {
+				const v = data[k];
+				if (typeof v === 'string' && v.trim()) return v;
+			}
+			return null;
+		};
 		return {
-			university: typeof data.university === 'string' ? data.university : null,
-			school: typeof data.school === 'string' ? data.school : null,
+			university: pick('university', 'universidad'),
+			school: pick('school', 'escuela'),
 		};
 	}
 

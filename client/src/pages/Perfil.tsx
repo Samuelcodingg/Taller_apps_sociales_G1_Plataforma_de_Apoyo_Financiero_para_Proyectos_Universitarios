@@ -24,6 +24,9 @@ const PORTFOLIO = "PORTFOLIO";
 
 const Perfil = () => {
   const user = useSelector((state: RootState) => state.auth.user);
+  // Solo los creadores (estudiantes) tienen datos academicos y verificacion de
+  // matricula. Los donantes no son estudiantes: no se les muestra esa seccion.
+  const isCreator = user?.role === "CREATOR";
   // Trae el perfil real desde el back. Los datos del registro (Redux) sirven de
   // respaldo inmediato mientras carga o si el endpoint no responde.
   const { data: profile } = useGetMyProfileQuery();
@@ -104,13 +107,19 @@ const Perfil = () => {
                   <h1 className="text-2xl font-bold">
                     {names || "N/A"} {lastNames || ""}
                   </h1>
-                  <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
-                    <ShieldCheck className="h-3 w-3 mr-1" />
-                    Verificado
-                  </Badge>
+                  {isCreator ? (
+                    <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary">
+                      <ShieldCheck className="h-3 w-3 mr-1" />
+                      Verificado
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">Donante</Badge>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {university || "N/A"} · {school || "N/A"}
+                  {isCreator
+                    ? `${university || "N/A"} · ${school || "N/A"}`
+                    : "Donante"}
                 </p>
               </div>
             </div>
@@ -138,16 +147,18 @@ const Perfil = () => {
                 />
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Centro de estudios</Label>
-                <Input value={university || "N/A"} readOnly />
+            {isCreator && (
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Centro de estudios</Label>
+                  <Input value={university || "N/A"} readOnly />
+                </div>
+                <div className="space-y-2">
+                  <Label>Escuela</Label>
+                  <Input value={school || "N/A"} readOnly />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Escuela</Label>
-                <Input value={school || "N/A"} readOnly />
-              </div>
-            </div>
+            )}
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Correo</Label>
