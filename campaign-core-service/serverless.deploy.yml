@@ -1,0 +1,124 @@
+service: sembramos-campaign-core-service
+frameworkVersion: ~4.34.0
+
+package:
+  individually: true
+  patterns:
+    # --- Inclusiones explicitas (lo unico que necesita la Lambda en runtime) ---
+    - dist/**
+    - node_modules/**
+    - package.json
+    - package-lock.json
+    - prisma/**
+
+    # --- Codigo fuente y artefactos de compilacion innecesarios ---
+    - '!src/**'
+    - '!**/*.ts'
+    - '!**/*.map'
+    - '!**/tsconfig*.json'
+
+    # --- Archivos ocultos, cachés y basura del entorno ---
+    - '!.git/**'
+    - '!.github/**'
+    - '!.vscode/**'
+    - '!.env'
+    - '!.env.*'
+    - '!**/.gitignore'
+    - '!node_modules/.cache/**'
+    - '!node_modules/.bin/**'
+
+    # --- Documentacion y tests dentro de dependencias ---
+    - '!node_modules/**/*.md'
+    - '!node_modules/**/test/**'
+    - '!node_modules/**/tests/**'
+    - '!node_modules/**/*.test.js'
+
+    # --- Dependencias de desarrollo (no deben viajar a Lambda) ---
+    - '!node_modules/typescript/**'
+    - '!node_modules/ts-node-dev/**'
+    - '!node_modules/ts-jest/**'
+    - '!node_modules/jest/**'
+    - '!node_modules/jest-*/**'
+    - '!node_modules/@jest/**'
+    - '!node_modules/@types/**'
+    - '!node_modules/supertest/**'
+    - '!node_modules/serverless/**'
+    - '!node_modules/serverless-offline/**'
+    - '!node_modules/prisma/**'
+
+    # --- Purga critica de Prisma: fuera TODOS los engines binarios ---
+    - '!node_modules/@prisma/engines/**'
+    - '!node_modules/.prisma/client/libquery_engine-*'
+    # Reincluir UNICAMENTE el query engine de AWS Lambda (debe ir al final
+    # para que prevalezca sobre la exclusion anterior).
+    - node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-2
+  timeout: 30
+  # La Lambda vive en la VPC default para alcanzar MariaDB (RDS) por routing
+  # interno (SG-to-SG). Declararlo aqui evita que cada deploy borre la config de
+  # VPC. Para salir a S3 publico la VPC usa un VPC Endpoint (S3 Gateway).
+  vpc:
+    securityGroupIds:
+      - sg-02d69ae1041692ea7
+    subnetIds:
+      - subnet-0dfe7d838289693b2
+      - subnet-07276540ff15853dc
+      - subnet-0e9d2c48c49f94233
+  environment:
+    DATABASE_URL: ${env:DATABASE_URL}
+    # Secreto JWT compartido entre microservicios para validar los access tokens
+    # emitidos por identity-profile-service. Default igual al de los demas.
+    JWT_ACCESS_SECRET: ${env:JWT_ACCESS_SECRET, 'local-access-secret'}
+    # Bucket S3 donde se guarda la multimedia (publica) de las campañas.
+    CAMPAIGN_BUCKET:
+      Ref: CampaignBucket
+  iam:
+    role:
+      statements:
+        # Permite subir la multimedia de campañas a S3.
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:GetObject
+          Resource:
+            Fn::Sub: '${CampaignBucket.Arn}/*'
+
+functions:
+  api:
+    handler: dist/lambda.handler
+    events:
+      - httpApi: '*'
+
+resources:
+  Resources:
+    # Bucket PUBLICO de lectura para la multimedia de campañas (imagenes/videos
+    # que se muestran en el navegador). La escritura es solo via la Lambda.
+    CampaignBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-media
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: false
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: false
+        OwnershipControls:
+          Rules:
+            - ObjectOwnership: BucketOwnerEnforced
+    # Politica que habilita la lectura publica de los objetos del bucket.
+    CampaignBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: CampaignBucket
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal: '*'
+              Action: s3:GetObject
+              Resource:
+                Fn::Sub: '${CampaignBucket.Arn}/*'

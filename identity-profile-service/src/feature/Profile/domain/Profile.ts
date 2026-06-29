@@ -29,4 +29,7 @@ export interface Profile {
 	country: ProfileCountry | null;
 	institution: ProfileInstitution | null;
 	socialNetworks: SocialNetwork[];
+	// Datos academicos extraidos del reporte de matricula (verification.extracted_data).
+	university: string | null;
+	school: string | null;
 }

@@ -9,6 +9,10 @@ import { AuthResult, toPublicUser } from '../domain/User';
 export interface RegisterCreatorInput {
 	email: string;
 	password: string;
+	// Nombres y apellidos extraidos del reporte de matricula (en produccion los
+	// provee la IA). Opcionales: si no vienen, el perfil queda con valores vacios.
+	names?: string;
+	surnames?: string;
 }
 
 export class RegisterCreator {
@@ -33,6 +37,8 @@ export class RegisterCreator {
 				email,
 				passwordHash,
 				role: Role.CREATOR,
+				names: input.names,
+				surnames: input.surnames,
 			});
 
 			const tokens = this.tokenService.issueTokens({
@@ -48,7 +54,11 @@ export class RegisterCreator {
 			});
 
 			return {
-				user: toPublicUser(user),
+				user: {
+					...toPublicUser(user),
+					names: input.names ?? '',
+					lastNames: input.surnames ?? '',
+				},
 				...tokens,
 			};
 		} catch (error) {

@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
-import { allCategories, campaigns, universities } from "@/lib/mock-data";
+import { Search, Loader2 } from "lucide-react";
+import { allCategories, universities } from "@/lib/mock-data";
+import { useListCampaignsQuery } from "@/slices/apiSlice";
+import { mapSummaryToCampaign } from "@/lib/mapCampaign";
 
 const Explorar = () => {
   const [q, setQ] = useState("");
@@ -14,15 +16,20 @@ const Explorar = () => {
   const [uni, setUni] = useState<string>("all");
   const [sort, setSort] = useState<string>("recent");
 
+  const { data: campaignsData, isLoading } = useListCampaignsQuery();
+
   const list = useMemo(() => {
-    let r = campaigns.filter((c) => c.status === "activa");
+    // Solo campañas publicadas (los borradores no aparecen en el catalogo).
+    let r = (campaignsData ?? [])
+      .filter((c) => c.status === "ACTIVE")
+      .map(mapSummaryToCampaign);
     if (q) r = r.filter((c) => c.title.toLowerCase().includes(q.toLowerCase()));
     if (cat !== "all") r = r.filter((c) => c.categories.includes(cat));
     if (uni !== "all") r = r.filter((c) => c.university === uni);
     if (sort === "funded") r = [...r].sort((a, b) => b.raised - a.raised);
     if (sort === "trending") r = [...r].sort((a, b) => b.trending - a.trending);
     return r;
-  }, [q, cat, uni, sort]);
+  }, [campaignsData, q, cat, uni, sort]);
 
   return (
     <AppLayout>
@@ -69,11 +76,19 @@ const Explorar = () => {
           </div>
         )}
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((c) => <CampaignCard key={c.id} c={c} />)}
-        </div>
-        {list.length === 0 && (
-          <div className="text-center py-16 text-muted-foreground">No encontramos proyectos con esos filtros.</div>
+        {isLoading ? (
+          <div className="flex justify-center py-16 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {list.map((c) => <CampaignCard key={c.id} c={c} />)}
+            </div>
+            {list.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground">No encontramos proyectos con esos filtros.</div>
+            )}
+          </>
         )}
       </div>
     </AppLayout>

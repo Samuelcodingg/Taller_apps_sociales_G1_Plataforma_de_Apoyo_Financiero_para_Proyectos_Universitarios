@@ -33,7 +33,28 @@ export class ProfileRepository implements IProfileRepository {
 			...profileWithRelations,
 		});
 
-		return profile ? this.toDomain(profile) : null;
+		if (!profile) return null;
+
+		const extracted = await this.getExtractedAcademic(accountId);
+		return this.toDomain(profile, extracted);
+	}
+
+	// Lee la universidad y la escuela de la ultima verificacion con datos extraidos
+	// (verification.extracted_data) del usuario.
+	private async getExtractedAcademic(
+		accountId: string,
+	): Promise<{ university: string | null; school: string | null }> {
+		const verifications = await this.prisma.verification.findMany({
+			where: { id_account: accountId },
+			orderBy: { created_at: 'desc' },
+			take: 10,
+		});
+		const withData = verifications.find((v) => v.extracted_data);
+		const data = (withData?.extracted_data ?? {}) as Record<string, unknown>;
+		return {
+			university: typeof data.university === 'string' ? data.university : null,
+			school: typeof data.school === 'string' ? data.school : null,
+		};
 	}
 
 	async updateByAccountId(accountId: string, fields: UpdateProfileFields): Promise<Profile> {
@@ -80,10 +101,17 @@ export class ProfileRepository implements IProfileRepository {
 			return updated;
 		});
 
-		return this.toDomain(profile);
+		const extracted = await this.getExtractedAcademic(accountId);
+		return this.toDomain(profile, extracted);
 	}
 
-	private toDomain(row: ProfileWithRelations): Profile {
+	private toDomain(
+		row: ProfileWithRelations,
+		extracted: { university: string | null; school: string | null } = {
+			university: null,
+			school: null,
+		},
+	): Profile {
 		return {
 			id: row.id,
 			accountId: row.accountId,
@@ -106,6 +134,8 @@ export class ProfileRepository implements IProfileRepository {
 				platform: sn.platform,
 				link: sn.link,
 			})),
+			university: extracted.university,
+			school: extracted.school,
 		};
 	}
 }

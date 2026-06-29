@@ -19,6 +19,10 @@ export interface PublicUser {
 	role: Role;
 	provider: AuthProvider;
 	createdAt: Date;
+	// Datos del perfil que se devuelven al crear la cuenta (donante). Opcionales
+	// porque otros flujos (login, creador) no los incluyen aqui.
+	names?: string;
+	lastNames?: string;
 }
 
 export interface AuthTokens {
@@ -34,6 +38,10 @@ export interface CreateLocalUserInput {
 	email: string;
 	passwordHash: string;
 	role: Role;
+	// Nombres y apellidos para inicializar el perfil (se usan en el registro de
+	// donante). Si no se envian, el perfil se crea con valores vacios.
+	names?: string;
+	surnames?: string;
 }
 
 export interface OAuthProfile {

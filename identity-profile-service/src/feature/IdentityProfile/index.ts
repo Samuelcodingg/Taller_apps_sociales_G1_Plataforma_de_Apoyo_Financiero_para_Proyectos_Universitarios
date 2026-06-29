@@ -15,8 +15,12 @@ import { RefreshToken } from './application/RefreshToken';
 import { ConflictError, UnauthorizedError, ValidationError } from '../../shared/errors';
 import { VerificationRepository } from '../Verification/infrastructure/VerificationRepository';
 import { SqsVerificationEventPublisher } from '../Verification/infrastructure/SqsVerificationEventPublisher';
-import { S3DocumentStorage } from '../Verification/infrastructure/S3DocumentStorage';
+import { createDocumentStorage } from '../Verification/infrastructure/documentStorageFactory';
 import { UploadVerification } from '../Verification/application/UploadVerification';
+import { PdfDocument } from '../Verification/domain/PdfDocument';
+import { PdfParseTextExtractor } from '../Verification/infrastructure/PdfParseTextExtractor';
+import { validateMatricula } from '../Verification/domain/MatriculaValidation';
+import { universityFromEmail } from '../../shared/universities';
 
 const router = Router();
 
@@ -46,7 +50,8 @@ const upload = multer({
 	storage: multer.memoryStorage(),
 	limits: { fileSize: 10 * 1024 * 1024 },
 });
-const documentStorage = new S3DocumentStorage();
+const documentStorage = createDocumentStorage();
+const pdfTextExtractor = new PdfParseTextExtractor();
 const verificationRepository = new VerificationRepository();
 const verificationPublisher = new SqsVerificationEventPublisher();
 const uploadVerification = new UploadVerification(verificationRepository, verificationPublisher);
@@ -64,23 +69,72 @@ const registerCreatorHandler = async (
 			throw new ValidationError('Debes enviar email y password como texto.');
 		}
 
-		const authResult = await registerCreator.execute({ email, password });
-
-		// El archivo puede llegar bajo cualquier nombre de campo: tomamos el primero.
+		// VALIDACION DEL PDF ANTES DE CREAR LA CUENTA. El archivo puede llegar bajo
+		// cualquier nombre de campo: tomamos el primero. Si el PDF es invalido (o
+		// falta), PdfDocument.create lanza y respondemos 400 SIN crear la cuenta,
+		// para que el front no redirija al usuario a la vista principal.
 		const files = (req.files as Express.Multer.File[] | undefined) ?? [];
-		const document = files[0];
-
-		let verification = null;
-		if (document) {
-			const accountId = authResult.user.id;
-			const documentUrl = await documentStorage.uploadAndGetDownloadUrl({
-				accountId,
-				buffer: document.buffer,
-				contentType: document.mimetype,
-				originalName: document.originalname,
-			});
-			verification = await uploadVerification.execute(accountId, { documentUrl, type: 'KYC' });
+		const first = files[0];
+		let document: PdfDocument;
+		try {
+			document = PdfDocument.create(
+				first && {
+					buffer: first.buffer,
+					mimetype: first.mimetype,
+					originalName: first.originalname,
+				},
+			);
+		} catch (error) {
+			throw new ValidationError(
+				error instanceof Error ? error.message : 'El documento PDF no es valido.',
+			);
 		}
+
+		// VALIDACION DEL CONTENIDO DE LA MATRICULA (tambien antes de crear la cuenta):
+		// el PDF debe ser un reporte de matricula del periodo 2026-1, con fecha de
+		// matricula via web del 2026 y mas de una asignatura matriculada. Si no
+		// cumple, respondemos 400 y NO se crea la cuenta. Ademas extraemos los
+		// nombres/apellidos ("Apellidos y Nombres") para completar el perfil del
+		// creador (lo que en produccion haria la IA).
+		let matricula;
+		try {
+			const text = await pdfTextExtractor.extractText(document.buffer);
+			matricula = validateMatricula(text);
+		} catch (error) {
+			throw new ValidationError(
+				error instanceof Error ? error.message : 'El reporte de matricula no es valido.',
+			);
+		}
+
+		// El PDF es valido: ahora si creamos la cuenta, con los datos de la matricula.
+		const authResult = await registerCreator.execute({
+			email,
+			password,
+			names: matricula.names,
+			surnames: matricula.surnames,
+		});
+
+		const accountId = authResult.user.id;
+		const documentUrl = await documentStorage.uploadAndGetDownloadUrl({
+			accountId,
+			buffer: document.buffer,
+			contentType: document.mimetype,
+			originalName: document.originalName,
+		});
+		const verification = await uploadVerification.execute(accountId, {
+			documentUrl,
+			type: 'KYC',
+			// Datos extraidos del reporte para el perfil del creador. La universidad
+			// se deriva del dominio del correo (no esta en el texto del PDF).
+			extractedData: {
+				fullName: matricula.fullName,
+				names: matricula.names,
+				surnames: matricula.surnames,
+				university: universityFromEmail(email),
+				faculty: matricula.faculty,
+				school: matricula.school,
+			},
+		});
 
 		return res.status(201).json({ ...authResult, verification });
 	} catch (error) {

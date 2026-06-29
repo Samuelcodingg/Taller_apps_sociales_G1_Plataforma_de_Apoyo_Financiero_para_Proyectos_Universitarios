@@ -41,6 +41,9 @@ export class VerificationRepository implements IVerificationRepository {
 				type: input.type,
 				status: input.status,
 				document_url: input.documentUrl,
+				extracted_data: input.extractedData
+					? (input.extractedData as object)
+					: undefined,
 				created_at: new Date(),
 			},
 		});

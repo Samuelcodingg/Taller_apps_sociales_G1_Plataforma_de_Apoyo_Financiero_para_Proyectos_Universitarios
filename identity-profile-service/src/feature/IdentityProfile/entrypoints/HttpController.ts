@@ -45,13 +45,27 @@ export class HttpController {
 
 	async registerDonor(req: Request, res: Response): Promise<Response> {
 		try {
-			const { email, password } = req.body as { email?: string; password?: string };
+			const { email, password, names, lastNames } = req.body as {
+				email?: string;
+				password?: string;
+				names?: string;
+				lastNames?: string;
+			};
 
 			if (typeof email !== 'string' || typeof password !== 'string') {
 				throw new ValidationError('Debes enviar email y password como texto.');
 			}
 
-			const authResult = await this.registerDonorUseCase.execute({ email, password });
+			if (typeof names !== 'string' || typeof lastNames !== 'string') {
+				throw new ValidationError('Debes enviar names y lastNames como texto.');
+			}
+
+			const authResult = await this.registerDonorUseCase.execute({
+				email,
+				password,
+				names,
+				lastNames,
+			});
 			return res.status(201).json(authResult);
 		} catch (error) {
 			return this.handleError(res, error);

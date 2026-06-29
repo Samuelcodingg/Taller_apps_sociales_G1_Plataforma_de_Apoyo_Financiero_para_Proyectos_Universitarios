@@ -3,6 +3,8 @@ import { Verification } from '../domain/Verification';
 export interface UploadVerificationInput {
 	documentUrl: string;
 	type?: string;
+	// Datos extraidos del documento para guardar en verification.extracted_data.
+	extractedData?: Record<string, unknown> | null;
 }
 
 export interface VerificationDTO {

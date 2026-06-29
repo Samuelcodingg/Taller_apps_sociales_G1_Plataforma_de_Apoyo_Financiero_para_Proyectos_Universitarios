@@ -54,6 +54,8 @@ export class AuthRepository implements IAuthRepository {
 			provider: 'LOCAL',
 			role: input.role,
 			emailVerified: false,
+			names: input.names,
+			surnames: input.surnames,
 		});
 	}
 
@@ -94,6 +96,8 @@ export class AuthRepository implements IAuthRepository {
 		provider: AuthProvider;
 		role: Role;
 		emailVerified: boolean;
+		names?: string;
+		surnames?: string;
 	}): Promise<User> {
 		const account = await this.prisma.$transaction(async (tx) => {
 			const role = await tx.roles.findUnique({ where: { name: params.role } });
@@ -120,8 +124,8 @@ export class AuthRepository implements IAuthRepository {
 					profile: {
 						create: {
 							id: randomUUID(),
-							names: '',
-							surnames: '',
+							names: params.names ?? '',
+							surnames: params.surnames ?? '',
 							updated_at: now,
 						},
 					},

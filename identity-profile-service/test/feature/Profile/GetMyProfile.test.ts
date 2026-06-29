@@ -19,6 +19,8 @@ const buildProfile = (overrides: Partial<Profile> = {}): Profile => ({
 	updatedAt: new Date('2026-06-15T00:00:00.000Z'),
 	country: { id: 'country-1', name: 'Peru' },
 	institution: { id: 'inst-1', name: 'UNI' },
+	university: null,
+	school: null,
 	socialNetworks: [{ id: 'sn-1', platform: 'LINKEDIN', link: 'https://x' }],
 	...overrides,
 });

@@ -30,6 +30,7 @@ export class UploadVerification {
 			type,
 			documentUrl,
 			status: 'PENDING',
+			extractedData: input.extractedData ?? null,
 		});
 
 		// Disparo asincrono hacia el servicio de IA via SQS. El documento ya quedo

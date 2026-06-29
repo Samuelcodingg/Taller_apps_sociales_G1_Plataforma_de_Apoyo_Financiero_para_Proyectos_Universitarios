@@ -3,18 +3,29 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CampaignCard } from "@/components/CampaignCard";
-import { campaigns } from "@/lib/mock-data";
-import { ArrowRight, Sparkles, Heart, GraduationCap } from "lucide-react";
+import { ArrowRight, Sparkles, Heart, GraduationCap, Loader2 } from "lucide-react";
 import hero from "@/assets/hero.jpg";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
+import { usePersonalizedFeedQuery, useTrendingQuery } from "@/slices/apiSlice";
+import { mapSummaryToCampaign } from "@/lib/mapCampaign";
 
 const Index = () => {
   const user = useSelector((state: RootState) => state.auth.user);
+  const isDonor = user?.role === "DONOR";
 
-  const trending = [...campaigns]
-    .sort((a, b) => b.trending - a.trending)
-    .slice(0, 3);
+  // Donante autenticado -> feed personalizado; resto -> tendencias.
+  const { data: feed, isLoading: loadingFeed } = usePersonalizedFeedQuery(6, {
+    skip: !isDonor,
+  });
+  const { data: trend, isLoading: loadingTrend } = useTrendingQuery(6, {
+    skip: isDonor,
+  });
+
+  const personalized = isDonor;
+  const list = (isDonor ? feed : trend) ?? [];
+  const isLoading = isDonor ? loadingFeed : loadingTrend;
+  const recommended = list.map(mapSummaryToCampaign).slice(0, 3);
 
   return (
     <AppLayout>
@@ -76,9 +87,13 @@ const Index = () => {
       <section className="space-y-5">
         <div className="flex items-end justify-between">
           <div>
-            <h2 className="text-2xl font-semibold">Recomendados para ti</h2>
+            <h2 className="text-2xl font-semibold">
+              {personalized ? "Recomendados para ti" : "Tendencias"}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Personalizado según tus intereses · ML
+              {personalized
+                ? "Personalizado según tu historial e intereses · ML"
+                : "Los proyectos más virales del momento"}
             </p>
           </div>
           <Button asChild variant="ghost" size="sm">
@@ -87,11 +102,19 @@ const Index = () => {
             </Link>
           </Button>
         </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {trending.map((c) => (
-            <CampaignCard key={c.id} c={c} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center py-10 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /></div>
+        ) : recommended.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground">
+            Aún no hay proyectos para mostrar. <Link to="/explorar" className="text-primary">Explora todos</Link>.
+          </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {recommended.map((c) => (
+              <CampaignCard key={c.id} c={c} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="mt-12 grid gap-4 sm:grid-cols-3">

@@ -1,21 +1,41 @@
+import { useMemo } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { TrendingUp, Wallet, Eye, Users, Plus } from "lucide-react";
-import { campaigns } from "@/lib/mock-data";
+import { TrendingUp, Target, Users, Megaphone, Plus, Loader2 } from "lucide-react";
+import { useListCampaignsQuery } from "@/slices/apiSlice";
 
-const stats = [
-  { label: "Total recaudado", value: "S/ 5,420", icon: TrendingUp, hint: "+12% esta semana" },
-  { label: "Disponible", value: "S/ 3,820", icon: Wallet, hint: "S/ 1,600 retenido" },
-  { label: "Donantes", value: "142", icon: Users, hint: "8 nuevos hoy" },
-  { label: "Visitas al perfil", value: "2,431", icon: Eye, hint: "+340 esta semana" },
-];
+const PLACEHOLDER_IMAGE = "https://placehold.co/160x160?text=Campa%C3%B1a";
 
 const Dashboard = () => {
-  const mine = campaigns.slice(0, 2);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const { data: all, isLoading } = useListCampaignsQuery();
+
+  // Solo las campañas del creador autenticado.
+  const mine = useMemo(
+    () => (all ?? []).filter((c) => c.creator.id === user?.id),
+    [all, user],
+  );
+
+  const stats = useMemo(() => {
+    const raised = mine.reduce((acc, c) => acc + c.currentAmount, 0);
+    const goal = mine.reduce((acc, c) => acc + c.goalAmount, 0);
+    const donors = mine.reduce((acc, c) => acc + c.donorsCount, 0);
+    const active = mine.filter((c) => c.status === "ACTIVE").length;
+    const pct = goal > 0 ? Math.round((raised / goal) * 100) : 0;
+    return [
+      { label: "Total recaudado", value: `S/ ${raised.toLocaleString()}`, icon: TrendingUp, hint: `${pct}% de la meta total` },
+      { label: "Meta total", value: `S/ ${goal.toLocaleString()}`, icon: Target, hint: `${mine.length} campaña(s)` },
+      { label: "Donantes", value: String(donors), icon: Users, hint: "en todas tus campañas" },
+      { label: "Campañas activas", value: String(active), icon: Megaphone, hint: `${mine.length} en total` },
+    ];
+  }, [mine]);
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -44,25 +64,37 @@ const Dashboard = () => {
 
         <Card className="p-5 space-y-4">
           <h2 className="font-semibold">Mis campañas</h2>
-          <div className="space-y-4">
-            {mine.map((c) => {
-              const pct = Math.round((c.raised / c.goal) * 100);
-              return (
-                <div key={c.id} className="grid sm:grid-cols-[80px_1fr_auto] gap-4 items-center pb-4 border-b last:border-0 last:pb-0">
-                  <img src={c.image} alt={c.title} loading="lazy" width={1024} height={768} className="w-20 h-20 object-cover rounded-lg" />
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{c.title}</h3>
-                      <Badge variant="secondary">{c.status}</Badge>
+
+          {isLoading ? (
+            <div className="flex justify-center py-10 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          ) : mine.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              Aún no has creado campañas.{" "}
+              <Link to="/crear" className="text-primary">Crea la primera</Link>.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {mine.map((c) => {
+                const pct = c.goalAmount > 0 ? Math.round((c.currentAmount / c.goalAmount) * 100) : 0;
+                return (
+                  <div key={c.id} className="grid sm:grid-cols-[80px_1fr_auto] gap-4 items-center pb-4 border-b last:border-0 last:pb-0">
+                    <img src={c.cover?.url ?? PLACEHOLDER_IMAGE} alt={c.title} loading="lazy" className="w-20 h-20 object-cover rounded-lg" />
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium">{c.title}</h3>
+                        <Badge variant="secondary">{c.status}</Badge>
+                      </div>
+                      <Progress value={pct} className="h-2" />
+                      <div className="text-xs text-muted-foreground">
+                        S/ {c.currentAmount.toLocaleString()} de S/ {c.goalAmount.toLocaleString()} · {c.donorsCount} donantes · {pct}%
+                      </div>
                     </div>
-                    <Progress value={pct} className="h-2" />
-                    <div className="text-xs text-muted-foreground">S/ {c.raised.toLocaleString()} de S/ {c.goal.toLocaleString()} · {c.donors} donantes</div>
+                    <Button variant="outline" size="sm" asChild><Link to={`/campana/${c.id}`}>Ver</Link></Button>
                   </div>
-                  <Button variant="outline" size="sm" asChild><Link to={`/campana/${c.id}`}>Ver</Link></Button>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
       </div>
     </AppLayout>

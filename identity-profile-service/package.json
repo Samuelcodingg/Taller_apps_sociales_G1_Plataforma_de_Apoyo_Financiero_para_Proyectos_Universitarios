@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only --ignore-watch uploads src/server.ts",
     "start": "node dist/server.js",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
@@ -28,6 +28,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
+    "pdf-parse": "^2.4.5",
     "serverless-http": "^4.0.0",
     "swagger-ui-express": "^5.0.1"
   },

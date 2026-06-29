@@ -5,3 +5,9 @@ Thumbs.db
 # Editor settings
 .idea/
 .vscode/
+
+# Claude Code (estado local, no se versiona)
+.claude/
+
+# Documentacion / diagramas locales
+docs/

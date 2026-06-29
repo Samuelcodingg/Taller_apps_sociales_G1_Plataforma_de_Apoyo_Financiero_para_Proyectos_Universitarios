@@ -9,6 +9,8 @@ import { AuthResult, toPublicUser } from '../domain/User';
 export interface RegisterDonorInput {
 	email: string;
 	password: string;
+	names: string;
+	lastNames: string;
 }
 
 export class RegisterDonor {
@@ -23,6 +25,12 @@ export class RegisterDonor {
 			const email = Email.create(input.email).toString();
 			const plainPassword = Password.create(input.password).toString();
 
+			const names = input.names?.trim() ?? '';
+			const lastNames = input.lastNames?.trim() ?? '';
+			if (names.length === 0 || lastNames.length === 0) {
+				throw new ValidationError('Debes enviar tus nombres y apellidos.');
+			}
+
 			const existingUser = await this.authRepository.findByEmail(email);
 			if (existingUser) {
 				throw new ConflictError('Ya existe una cuenta con ese correo.');
@@ -33,6 +41,8 @@ export class RegisterDonor {
 				email,
 				passwordHash,
 				role: Role.DONOR,
+				names,
+				surnames: lastNames,
 			});
 
 			const tokens = this.tokenService.issueTokens({
@@ -48,7 +58,7 @@ export class RegisterDonor {
 			});
 
 			return {
-				user: toPublicUser(user),
+				user: { ...toPublicUser(user), names, lastNames },
 				...tokens,
 			};
 		} catch (error) {

@@ -44,6 +44,7 @@ describe('UploadVerification', () => {
 			type: 'KYC',
 			documentUrl: 'https://s3/doc.pdf',
 			status: 'PENDING',
+			extractedData: null,
 		});
 		expect(dto.status).toBe('PENDING');
 	});

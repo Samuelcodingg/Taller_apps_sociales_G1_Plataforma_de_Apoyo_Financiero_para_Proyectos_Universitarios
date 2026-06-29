@@ -9,8 +9,19 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+// Usa VITE_API_URL si esta definida (p. ej. .env.local con http://localhost:3000
+// para desarrollo); si no, cae al backend desplegado en AWS.
 export const BASE_SERVER_URL =
+  import.meta.env.VITE_API_URL ??
   "https://ywf61bjrme.execute-api.us-east-2.amazonaws.com";
+
+// Campaign Core Service (microservicio aparte). En dev apunta a localhost:3001.
+export const BASE_CAMPAIGN_URL =
+  import.meta.env.VITE_CAMPAIGN_API_URL ?? BASE_SERVER_URL;
+
+// Funding & Payment Service. En dev apunta a localhost:3002.
+export const BASE_FUNDING_URL =
+  import.meta.env.VITE_FUNDING_API_URL ?? BASE_SERVER_URL;
 export const ACCOUNT_TYPES = ["CREATOR", "DONOR"] as const;
 export const ROLES = [...ACCOUNT_TYPES, "ADMIN"] as const;
 

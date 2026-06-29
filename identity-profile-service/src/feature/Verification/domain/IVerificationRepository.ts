@@ -5,6 +5,9 @@ export interface CreateVerificationInput {
 	type: string;
 	documentUrl: string;
 	status: string;
+	// Datos extraidos del documento (p. ej. universidad, facultad, escuela, nombre).
+	// Se guardan en la columna JSON verification.extracted_data.
+	extractedData?: Record<string, unknown> | null;
 }
 
 export interface IVerificationRepository {

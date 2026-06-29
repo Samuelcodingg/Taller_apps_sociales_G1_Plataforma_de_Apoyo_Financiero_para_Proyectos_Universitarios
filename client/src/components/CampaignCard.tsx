@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Users, Target } from "lucide-react";
-import type { Campaign } from "@/lib/mock-data";
+import type { Campaign } from "@/types/campaign";
 
 export function CampaignCard({ c }: { c: Campaign }) {
   const pct = Math.min(100, Math.round((c.raised / c.goal) * 100));

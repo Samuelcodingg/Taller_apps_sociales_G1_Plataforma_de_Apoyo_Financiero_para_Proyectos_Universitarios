@@ -28,6 +28,8 @@ export interface ProfileDTO {
 	country: { id: string; name: string | null } | null;
 	institution: { id: string; name: string } | null;
 	socialNetworks: Array<{ id: string; platform: string; link: string }>;
+	university: string | null;
+	school: string | null;
 	updatedAt: string;
 }
 
@@ -42,5 +44,7 @@ export const toProfileDTO = (profile: Profile): ProfileDTO => ({
 	country: profile.country,
 	institution: profile.institution,
 	socialNetworks: profile.socialNetworks,
+	university: profile.university,
+	school: profile.school,
 	updatedAt: profile.updatedAt.toISOString(),
 });

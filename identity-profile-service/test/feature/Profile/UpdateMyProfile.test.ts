@@ -28,6 +28,8 @@ class CapturingProfileRepository implements IProfileRepository {
 			updatedAt: new Date('2026-06-15T00:00:00.000Z'),
 			country: null,
 			institution: null,
+			university: null,
+			school: null,
 			socialNetworks: (fields.socialNetworks ?? []).map((sn, i) => ({
 				id: `sn-${i}`,
 				platform: sn.platform,
