@@ -26,6 +26,11 @@ const Validation = () => {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Limite de tamano del PDF. API Gateway/Lambda rechaza payloads grandes con
+  // 413 (y esa respuesta no lleva cabecera CORS, lo que confunde con un error de
+  // CORS). Un reporte de matricula real pesa muy poco; topamos en 4 MB.
+  const MAX_PDF_BYTES = 4 * 1024 * 1024;
+
   const [registerCreator, { isLoading }] = useRegisterCreatorMutation();
 
   const startFileSelection = () => {
@@ -47,6 +52,16 @@ const Validation = () => {
 
     if (selected.type !== "application/pdf") {
       setError("Solo se permite PDF");
+      return;
+    }
+
+    if (selected.size > MAX_PDF_BYTES) {
+      setFile(null);
+      setError(
+        `El PDF es demasiado grande (${(selected.size / (1024 * 1024)).toFixed(
+          1,
+        )} MB). El máximo permitido es 4 MB. Sube el reporte de matrícula original (suele pesar menos de 1 MB).`,
+      );
       return;
     }
 
@@ -95,8 +110,20 @@ const Validation = () => {
     } catch (error) {
       console.error("Error: ", error);
 
-      toast.error(getErrorMessage(error));
-      setError(error?.data?.message || "Error al registrar usuario");
+      // 413 / fallo de red: la respuesta no trae data.message (y a veces se ve
+      // como error de CORS). Damos una pista sobre el tamano del archivo.
+      const status = error?.status;
+      const isTooLargeOrNetwork =
+        status === 413 || status === "FETCH_ERROR" || status === "PARSING_ERROR";
+
+      const message =
+        error?.data?.message ||
+        (isTooLargeOrNetwork
+          ? "No se pudo enviar el PDF. Puede que el archivo sea demasiado grande (máx. 4 MB) o haya un problema de conexión."
+          : "Error al registrar usuario");
+
+      toast.error(message);
+      setError(message);
     }
   };
 
