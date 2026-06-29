@@ -1,7 +1,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { randomUUID } from 'node:crypto';
-import { assertDatabaseUrl } from '../../../shared/config';
+import { databaseAdapterConfig } from '../../../shared/config';
 import { IDiscoveryRepository, ScoredCampaign } from '../domain/IDiscoveryRepository';
 
 const summaryInclude = Prisma.validator<Prisma.CampaignDefaultArgs>()({
@@ -36,7 +36,7 @@ export class DiscoveryRepository implements IDiscoveryRepository {
 			this.prisma = prismaClient;
 			return;
 		}
-		const adapter = new PrismaMariaDb(assertDatabaseUrl());
+		const adapter = new PrismaMariaDb(databaseAdapterConfig());
 		this.prisma = new PrismaClient({ adapter });
 	}
 

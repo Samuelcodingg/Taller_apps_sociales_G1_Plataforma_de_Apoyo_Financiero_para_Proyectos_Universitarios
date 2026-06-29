@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { randomUUID } from 'node:crypto';
-import { assertDatabaseUrl } from '../../../shared/config';
+import { databaseAdapterConfig } from '../../../shared/config';
 import {
 	CampaignGoal,
 	CreateDonationData,
@@ -23,7 +23,7 @@ export class FundingRepository implements IFundingRepository {
 			this.prisma = prismaClient;
 			return;
 		}
-		const adapter = new PrismaMariaDb(assertDatabaseUrl());
+		const adapter = new PrismaMariaDb(databaseAdapterConfig());
 		this.prisma = new PrismaClient({ adapter });
 	}
 

@@ -5,7 +5,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import { IAuthRepository, StoreRefreshTokenInput } from '../domain/IAuthRepository';
 import { CreateLocalUserInput, CreateOAuthUserInput, AuthProvider, User } from '../domain/User';
 import { Role } from '../domain/Role';
-import { assertDatabaseUrl } from '../../../shared/config';
+import { databaseAdapterConfig } from '../../../shared/config';
 
 // La cuenta siempre se carga junto a sus roles (tabla account_roles -> roles),
 // ya que en esta base de datos el rol no vive como columna de `account`.
@@ -24,8 +24,7 @@ export class AuthRepository implements IAuthRepository {
 			return;
 		}
 
-		const databaseUrl = assertDatabaseUrl();
-		const adapter = new PrismaMariaDb(databaseUrl);
+		const adapter = new PrismaMariaDb(databaseAdapterConfig());
 		this.prisma = new PrismaClient({ adapter });
 	}
 

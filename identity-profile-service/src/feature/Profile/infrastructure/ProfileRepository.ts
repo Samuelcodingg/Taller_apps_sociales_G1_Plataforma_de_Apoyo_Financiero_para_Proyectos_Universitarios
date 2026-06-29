@@ -2,7 +2,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { randomUUID } from 'node:crypto';
 import { NotFoundError } from '../../../shared/errors';
-import { assertDatabaseUrl } from '../../../shared/config';
+import { databaseAdapterConfig } from '../../../shared/config';
 import { IProfileRepository, UpdateProfileFields } from '../domain/IProfileRepository';
 import { Profile } from '../domain/Profile';
 
@@ -22,8 +22,7 @@ export class ProfileRepository implements IProfileRepository {
 			return;
 		}
 
-		const databaseUrl = assertDatabaseUrl();
-		const adapter = new PrismaMariaDb(databaseUrl);
+		const adapter = new PrismaMariaDb(databaseAdapterConfig());
 		this.prisma = new PrismaClient({ adapter });
 	}
 

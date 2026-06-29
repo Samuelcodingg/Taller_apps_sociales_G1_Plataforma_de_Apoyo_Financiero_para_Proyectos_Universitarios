@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { randomUUID } from 'node:crypto';
-import { assertDatabaseUrl } from '../../../shared/config';
+import { databaseAdapterConfig } from '../../../shared/config';
 import {
 	CreateVerificationInput,
 	IVerificationRepository,
@@ -28,8 +28,7 @@ export class VerificationRepository implements IVerificationRepository {
 			return;
 		}
 
-		const databaseUrl = assertDatabaseUrl();
-		const adapter = new PrismaMariaDb(databaseUrl);
+		const adapter = new PrismaMariaDb(databaseAdapterConfig());
 		this.prisma = new PrismaClient({ adapter });
 	}
 
