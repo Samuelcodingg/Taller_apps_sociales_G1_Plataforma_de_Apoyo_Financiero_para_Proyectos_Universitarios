@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Hosting del frontend (SPA Vite/React) de Sembramos: bucket S3 privado servido
+  a traves de CloudFront con Origin Access Control (OAC). Incluye el fallback de
+  SPA (403/404 -> /index.html con 200) para que el routing de React Router
+  funcione al recargar rutas profundas.
+
+Parameters:
+  Stage:
+    Type: String
+    Default: qa
+    AllowedValues: [qa, prod]
+    Description: Entorno de despliegue (afecta solo a los nombres de los recursos).
+
+Resources:
+  # Bucket PRIVADO: sin acceso publico directo. Solo CloudFront puede leerlo.
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'sembramos-client-${Stage}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  # Origin Access Control: identidad con la que CloudFront firma las peticiones
+  # al bucket (reemplaza al antiguo Origin Access Identity).
+  OriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'sembramos-client-${Stage}-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub 'Sembramos frontend (${Stage})'
+        Enabled: true
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100
+        HttpVersion: http2and3
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          # CachingOptimized (policy administrada por AWS).
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        # Fallback de SPA: cualquier ruta inexistente sirve index.html con 200,
+        # para que React Router resuelva el enrutado en el cliente.
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+  # Politica que autoriza SOLO a esta distribucion de CloudFront a leer el bucket.
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${SiteBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution.Id}'
+
+Outputs:
+  BucketName:
+    Description: Nombre del bucket S3 donde se sincroniza el build (dist/).
+    Value: !Ref SiteBucket
+  DistributionId:
+    Description: ID de la distribucion CloudFront (para invalidaciones).
+    Value: !Ref Distribution
+  DistributionDomainName:
+    Description: URL publica del frontend.
+    Value: !GetAtt Distribution.DomainName
