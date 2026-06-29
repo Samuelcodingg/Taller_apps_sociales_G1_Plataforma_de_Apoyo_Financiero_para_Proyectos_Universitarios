@@ -13,6 +13,9 @@ export interface UpdateProfileInput {
 	birthDate?: string | null; // ISO date (yyyy-mm-dd)
 	photoUrl?: string | null;
 	countryId?: string | null;
+	// Nombre del pais (texto libre). Si llega, el repositorio resuelve/crea el
+	// pais en el catalogo y asigna su id. Permite editar el pais sin un catalogo previo.
+	country?: string | null;
 	institutionId?: string | null;
 	socialNetworks?: SocialNetworkInput[];
 }

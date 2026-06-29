@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ShieldCheck, Linkedin, Globe, Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -40,12 +40,13 @@ const Perfil = () => {
   const [birthDate, setBirthDate] = useState("");
   const [linkedin, setLinkedin] = useState("");
   const [portfolio, setPortfolio] = useState("");
+  const [country, setCountry] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Campos de solo lectura. Universidad y escuela vienen del reporte de matricula
-  // (extracted_data); pais/institucion se gestionan por catalogo/IDs.
+  // Campos de solo lectura. Universidad y escuela vienen del reporte de matricula.
   const university = profile?.university || profile?.institution?.name || user?.university || "";
   const school = profile?.school || "";
-  const country = profile?.country?.name || user?.country || "";
 
   // Inicializa el formulario cuando llega el perfil del back (o el user de Redux).
   useEffect(() => {
@@ -53,10 +54,44 @@ const Perfil = () => {
     setLastNames(profile?.surnames || user?.lastNames || "");
     setBiography(profile?.biography || "");
     setBirthDate(profile?.birthDate || user?.birthDate || "");
+    setCountry(profile?.country?.name || user?.country || "");
+    setPhotoUrl(profile?.photoUrl ?? null);
     const networks = profile?.socialNetworks ?? [];
     setLinkedin(networks.find((n) => n.platform === LINKEDIN)?.link || "");
     setPortfolio(networks.find((n) => n.platform === PORTFOLIO)?.link || "");
   }, [profile, user]);
+
+  // Lee la imagen elegida, la redimensiona a ~256px y la guarda como data URL
+  // (se persiste en photo_url). Evita subir archivos pesados.
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecciona una imagen válida");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 256;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        // Recorte cuadrado centrado.
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2;
+        const sy = (img.height - min) / 2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+        setPhotoUrl(canvas.toDataURL("image/jpeg", 0.85));
+        toast.success("Foto lista. Guarda los cambios para aplicarla.");
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +108,8 @@ const Perfil = () => {
         surnames: lastNames.trim(),
         biography: biography.trim() || null,
         birthDate: birthDate || null,
+        country: country.trim() || null,
+        photoUrl: photoUrl ?? null,
         socialNetworks,
       }).unwrap();
 
@@ -91,13 +128,23 @@ const Perfil = () => {
             <div className="flex items-end gap-4">
               <div className="relative">
                 <Avatar className="h-24 w-24 ring-4 ring-card">
+                  {photoUrl && <AvatarImage src={photoUrl} alt="Foto de perfil" />}
                   <AvatarFallback className="bg-secondary text-secondary-foreground text-2xl">
                     {getInitialsNames(names, lastNames)}
                   </AvatarFallback>
                 </Avatar>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
                 <button
                   type="button"
+                  onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-card border grid place-items-center hover:bg-muted"
+                  title="Cambiar foto"
                 >
                   <Camera className="h-4 w-4" />
                 </button>
@@ -176,7 +223,11 @@ const Perfil = () => {
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>País</Label>
-                <Input value={country || "N/A"} readOnly />
+                <Input
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="Tu país"
+                />
               </div>
             </div>
             <div className="space-y-2">

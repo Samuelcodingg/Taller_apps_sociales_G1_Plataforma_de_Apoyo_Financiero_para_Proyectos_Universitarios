@@ -72,6 +72,24 @@ export class ProfileRepository implements IProfileRepository {
 				throw new NotFoundError('El perfil del usuario no existe.');
 			}
 
+			// Resolucion del pais por nombre (find-or-create) si se envio countryName.
+			// undefined => no se toca; null => se limpia; texto => se resuelve/crea.
+			let resolvedCountryId = fields.countryId;
+			if (fields.countryName !== undefined) {
+				if (fields.countryName === null) {
+					resolvedCountryId = null;
+				} else {
+					const found = await tx.country.findFirst({ where: { name: fields.countryName } });
+					resolvedCountryId = found
+						? found.id_country
+						: (
+								await tx.country.create({
+									data: { id_country: randomUUID(), name: fields.countryName },
+								})
+							).id_country;
+				}
+			}
+
 			await tx.profile.update({
 				where: { id: existing.id },
 				data: {
@@ -80,7 +98,7 @@ export class ProfileRepository implements IProfileRepository {
 					biography: fields.biography,
 					photoUrl: fields.photoUrl,
 					birthDate: fields.birthDate,
-					id_country: fields.countryId,
+					id_country: resolvedCountryId,
 					id_institution: fields.institutionId,
 					updated_at: new Date(),
 				},

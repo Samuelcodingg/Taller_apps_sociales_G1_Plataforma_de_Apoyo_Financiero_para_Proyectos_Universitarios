@@ -21,6 +21,8 @@ export type UpdateProfileRequest = {
   surnames?: string;
   biography?: string | null;
   birthDate?: string | null; // ISO yyyy-mm-dd
+  photoUrl?: string | null;
+  country?: string | null; // nombre del pais (texto)
   socialNetworks?: Array<{ platform: string; link: string }>;
 };
 

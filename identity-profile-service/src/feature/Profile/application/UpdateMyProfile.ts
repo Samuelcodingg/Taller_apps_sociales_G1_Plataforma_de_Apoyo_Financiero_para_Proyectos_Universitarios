@@ -42,6 +42,14 @@ export class UpdateMyProfile {
 			fields.countryId = input.countryId;
 		}
 
+		if (input.country !== undefined) {
+			// Nombre de pais (texto). El repositorio lo resuelve/crea y asigna el id.
+			fields.countryName =
+				typeof input.country === 'string' && input.country.trim()
+					? input.country.trim()
+					: null;
+		}
+
 		if (input.institutionId !== undefined) {
 			fields.institutionId = input.institutionId;
 		}

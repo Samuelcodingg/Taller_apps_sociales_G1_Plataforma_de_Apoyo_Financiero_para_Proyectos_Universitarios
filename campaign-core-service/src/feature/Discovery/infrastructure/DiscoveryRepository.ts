@@ -186,7 +186,8 @@ export class DiscoveryRepository implements IDiscoveryRepository {
 		});
 		const withData = verifications.find((v) => v.extracted_data);
 		const data = (withData?.extracted_data ?? {}) as Record<string, unknown>;
-		return typeof data.university === 'string' ? data.university : null;
+		const uni = data.university ?? data.universidad;
+		return typeof uni === 'string' && uni.trim() ? uni : null;
 	}
 
 	private creatorUniversity(row: SummaryRow): string | null {
@@ -197,7 +198,8 @@ export class DiscoveryRepository implements IDiscoveryRepository {
 			.filter((v) => v.extracted_data)
 			.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0];
 		const data = (withData?.extracted_data ?? {}) as Record<string, unknown>;
-		return typeof data.university === 'string' ? data.university : null;
+		const uni = data.university ?? data.universidad;
+		return typeof uni === 'string' && uni.trim() ? uni : null;
 	}
 
 	// ---------- persistencia ----------

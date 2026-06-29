@@ -390,8 +390,16 @@ export class CampaignRepository implements ICampaignRepository {
 			.filter((v) => v.extracted_data)
 			.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0];
 		const data = (withData?.extracted_data ?? {}) as Record<string, unknown>;
-		const universityFromData = typeof data.university === 'string' ? data.university : null;
-		const career = typeof data.school === 'string' ? data.school : null;
+		// Acepta llaves en ingles (identity) y en español (servicio de IA).
+		const pick = (...keys: string[]): string | null => {
+			for (const k of keys) {
+				const v = data[k];
+				if (typeof v === 'string' && v.trim()) return v;
+			}
+			return null;
+		};
+		const universityFromData = pick('university', 'universidad');
+		const career = pick('school', 'escuela', 'career', 'carrera');
 
 		return {
 			id: row.creator?.id ?? null,
