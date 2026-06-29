@@ -18,13 +18,17 @@ export const BASE_SERVER_URL =
   import.meta.env.VITE_API_URL ||
   "https://ywf61bjrme.execute-api.us-east-2.amazonaws.com";
 
-// Campaign Core Service (microservicio aparte). En dev apunta a localhost:3001.
+// Campaign Core Service (microservicio aparte). En dev apunta a localhost:3001
+// via VITE_CAMPAIGN_API_URL; si no, al API Gateway desplegado de campaign-core.
 export const BASE_CAMPAIGN_URL =
-  import.meta.env.VITE_CAMPAIGN_API_URL || BASE_SERVER_URL;
+  import.meta.env.VITE_CAMPAIGN_API_URL ||
+  "https://6rexq35702.execute-api.us-east-2.amazonaws.com";
 
-// Funding & Payment Service. En dev apunta a localhost:3002.
+// Funding & Payment Service. En dev apunta a localhost:3002 via
+// VITE_FUNDING_API_URL; si no, al API Gateway desplegado de funding-payment.
 export const BASE_FUNDING_URL =
-  import.meta.env.VITE_FUNDING_API_URL || BASE_SERVER_URL;
+  import.meta.env.VITE_FUNDING_API_URL ||
+  "https://2w9335vf6f.execute-api.us-east-2.amazonaws.com";
 export const ACCOUNT_TYPES = ["CREATOR", "DONOR"] as const;
 export const ROLES = [...ACCOUNT_TYPES, "ADMIN"] as const;
 
