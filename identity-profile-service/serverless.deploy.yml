@@ -89,17 +89,10 @@ provider:
   runtime: nodejs20.x
   region: us-east-2
   timeout: 30
-  # La Lambda vive en la VPC default para alcanzar MariaDB (RDS) por routing
-  # interno (SG-to-SG). Declararlo aqui evita que cada deploy borre la config de
-  # VPC (antes se ponia a mano en la consola y se perdia). Para salir a servicios
-  # publicos (SQS, S3) la VPC usa VPC Endpoints (SQS Interface + S3 Gateway).
-  vpc:
-    securityGroupIds:
-      - sg-02d69ae1041692ea7
-    subnetIds:
-      - subnet-0dfe7d838289693b2
-      - subnet-07276540ff15853dc
-      - subnet-0e9d2c48c49f94233
+  # Sin VPC: la Lambda corre fuera de la VPC y se conecta a RDS por su endpoint
+  # publico (la instancia es de acceso publico). Asi obtiene salida a internet
+  # gestionada por AWS sin coste y evita el NAT Gateway (cobro fijo por hora).
+  # Requisito: el Security Group de RDS debe permitir 3306 desde estas Lambdas.
   environment:
     DATABASE_URL: ${env:DATABASE_URL}
     # URL de la cola SQS creada en el bloque resources (Ref devuelve la URL).
