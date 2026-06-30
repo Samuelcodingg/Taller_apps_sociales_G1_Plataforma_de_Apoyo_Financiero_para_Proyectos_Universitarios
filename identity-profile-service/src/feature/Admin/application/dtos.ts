@@ -46,3 +46,37 @@ export interface CreateUserData {
 	names?: string;
 	surnames?: string;
 }
+
+// ---------- Proyectos (campañas) ----------
+export interface ListCampaignsQuery {
+	search?: string;
+	status?: string; // DRAFT | ACTIVE | FINISHED
+	sort?: 'newest' | 'oldest';
+}
+
+export interface AdminCampaignListItemDTO {
+	id: string;
+	title: string;
+	status: string;
+	goalAmount: number;
+	currentAmount: number;
+	categories: string[];
+	creatorId: string | null;
+	creatorName: string;
+	creatorEmail: string | null;
+	donorsCount: number;
+	createdAt: string;
+	endDate: string;
+}
+
+export interface AdminCampaignDetailDTO extends AdminCampaignListItemDTO {
+	description: string;
+	donations: AdminDonationDTO[];
+}
+
+export interface UpdateCampaignData {
+	title?: string;
+	description?: string;
+	status?: string;
+	goalAmount?: number;
+}

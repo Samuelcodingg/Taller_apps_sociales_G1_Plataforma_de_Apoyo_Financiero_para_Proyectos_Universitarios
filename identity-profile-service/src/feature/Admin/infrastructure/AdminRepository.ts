@@ -4,10 +4,14 @@ import { randomUUID } from 'node:crypto';
 import { databaseAdapterConfig } from '../../../shared/config';
 import { ConflictError, NotFoundError } from '../../../shared/errors';
 import {
+	AdminCampaignDetailDTO,
+	AdminCampaignListItemDTO,
 	AdminUserDetailDTO,
 	AdminUserListItemDTO,
 	CreateUserData,
+	ListCampaignsQuery,
 	ListUsersQuery,
+	UpdateCampaignData,
 } from '../application/dtos';
 
 const dec = (v: unknown): number => (v == null ? 0 : Number(v));
@@ -296,6 +300,130 @@ export class AdminRepository {
 				await tx.account_roles.deleteMany({ where: { id_account: id } });
 				await tx.account.delete({ where: { id } });
 
+				await tx.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS=1');
+			},
+			{ timeout: 30000 },
+		);
+	}
+
+	// ---------- Proyectos (campañas) ----------
+	private creatorName(creator: { profile: { names: string; surnames: string }[] } | null): string {
+		const p = creator?.profile?.[0];
+		if (!p) return 'Usuario';
+		return `${p.names ?? ''} ${p.surnames ?? ''}`.trim() || 'Usuario';
+	}
+
+	async listCampaigns(query: ListCampaignsQuery): Promise<AdminCampaignListItemDTO[]> {
+		const where: Record<string, unknown> = {};
+		if (query.search) where.title = { contains: query.search };
+		if (query.status) where.status = query.status;
+
+		const rows = await this.prisma.campaign.findMany({
+			where,
+			orderBy: { createdAt: query.sort === 'oldest' ? 'asc' : 'desc' },
+			include: {
+				creator: { include: { profile: true } },
+				categories: { include: { category: true } },
+				_count: { select: { donations: true } },
+			},
+			take: 500,
+		});
+
+		return rows.map((c) => ({
+			id: c.id,
+			title: c.title,
+			status: c.status,
+			goalAmount: dec(c.goalAmount),
+			currentAmount: dec(c.currentAmount),
+			categories: c.categories.map((cc) => cc.category.name),
+			creatorId: c.creatorId,
+			creatorName: this.creatorName(c.creator),
+			creatorEmail: c.creator?.email ?? null,
+			donorsCount: c._count.donations,
+			createdAt: c.createdAt.toISOString(),
+			endDate: c.endDate.toISOString(),
+		}));
+	}
+
+	async getCampaignDetail(id: string): Promise<AdminCampaignDetailDTO> {
+		const c = await this.prisma.campaign.findUnique({
+			where: { id },
+			include: {
+				creator: { include: { profile: true } },
+				categories: { include: { category: true } },
+				_count: { select: { donations: true } },
+				donations: {
+					orderBy: { created_at: 'desc' },
+					include: { payments: { orderBy: { createdAt: 'desc' }, take: 1 } },
+				},
+			},
+		});
+		if (!c) {
+			throw new NotFoundError('La campaña no existe.');
+		}
+
+		return {
+			id: c.id,
+			title: c.title,
+			description: c.description,
+			status: c.status,
+			goalAmount: dec(c.goalAmount),
+			currentAmount: dec(c.currentAmount),
+			categories: c.categories.map((cc) => cc.category.name),
+			creatorId: c.creatorId,
+			creatorName: this.creatorName(c.creator),
+			creatorEmail: c.creator?.email ?? null,
+			donorsCount: c._count.donations,
+			createdAt: c.createdAt.toISOString(),
+			endDate: c.endDate.toISOString(),
+			donations: c.donations.map((d) => ({
+				id: d.id,
+				amount: dec(d.amount),
+				campaignTitle: c.title,
+				status: d.payments[0]?.status ?? 'PENDING',
+				isAnonymous: !!d.isAnonymous,
+				createdAt: d.created_at.toISOString(),
+			})),
+		};
+	}
+
+	async updateCampaign(id: string, input: UpdateCampaignData): Promise<AdminCampaignListItemDTO> {
+		const existing = await this.prisma.campaign.findUnique({ where: { id } });
+		if (!existing) {
+			throw new NotFoundError('La campaña no existe.');
+		}
+		await this.prisma.campaign.update({
+			where: { id },
+			data: {
+				title: input.title ?? undefined,
+				description: input.description ?? undefined,
+				status: input.status ?? undefined,
+				goalAmount: input.goalAmount ?? undefined,
+				updated_at: new Date(),
+			},
+		});
+		const list = await this.listCampaigns({});
+		return list.find((c) => c.id === id) ?? (await this.getCampaignDetail(id));
+	}
+
+	async deleteCampaign(id: string): Promise<void> {
+		const existing = await this.prisma.campaign.findUnique({ where: { id } });
+		if (!existing) {
+			throw new NotFoundError('La campaña no existe.');
+		}
+		await this.prisma.$transaction(
+			async (tx) => {
+				await tx.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS=0');
+				await tx.payment.deleteMany({ where: { donation: { campaignId: id } } });
+				await tx.donation.deleteMany({ where: { campaignId: id } });
+				await tx.campaignCategory.deleteMany({ where: { campaignId: id } });
+				await tx.campaignMedia.deleteMany({ where: { campaignId: id } });
+				await tx.commentCampaign.deleteMany({ where: { campaignId: id } });
+				await tx.campaign_interaction.deleteMany({ where: { id_campaign: id } });
+				await tx.campaign_update.deleteMany({ where: { id_campaign: id } });
+				await tx.campaign_metrics.deleteMany({ where: { id_campaign: id } });
+				await tx.user_recommendation.deleteMany({ where: { id_campaign: id } });
+				await tx.campaign.delete({ where: { id } });
 				await tx.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS=1');
 			},
 			{ timeout: 30000 },

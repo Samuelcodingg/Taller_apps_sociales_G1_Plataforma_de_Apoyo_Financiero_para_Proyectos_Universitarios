@@ -9,6 +9,7 @@ import { AdminRepository } from '../infrastructure/AdminRepository';
 import { ListUsersQuery } from '../application/dtos';
 
 const ALLOWED_ROLES = ['DONOR', 'CREATOR', 'ADMIN'];
+const ALLOWED_STATUS = ['DRAFT', 'ACTIVE', 'FINISHED'];
 
 export class AdminHttpController {
 	constructor(
@@ -113,6 +114,75 @@ export class AdminHttpController {
 	async deleteUser(req: Request, res: Response): Promise<Response> {
 		try {
 			await this.repo.deleteUser(String(req.params.id));
+			return res.status(204).send();
+		} catch (error) {
+			return this.handleError(error, res);
+		}
+	}
+
+	// ---------- Proyectos (campañas) ----------
+	async listCampaigns(req: Request, res: Response): Promise<Response> {
+		try {
+			const { search, status, sort } = req.query;
+			const campaigns = await this.repo.listCampaigns({
+				search: typeof search === 'string' && search.trim() ? search.trim() : undefined,
+				status:
+					typeof status === 'string' && ALLOWED_STATUS.includes(status.toUpperCase())
+						? status.toUpperCase()
+						: undefined,
+				sort: sort === 'oldest' ? 'oldest' : 'newest',
+			});
+			return res.json(campaigns);
+		} catch (error) {
+			return this.handleError(error, res);
+		}
+	}
+
+	async getCampaign(req: Request, res: Response): Promise<Response> {
+		try {
+			return res.json(await this.repo.getCampaignDetail(String(req.params.id)));
+		} catch (error) {
+			return this.handleError(error, res);
+		}
+	}
+
+	async updateCampaign(req: Request, res: Response): Promise<Response> {
+		try {
+			const { title, description, status, goalAmount } = req.body as {
+				title?: string;
+				description?: string;
+				status?: string;
+				goalAmount?: number;
+			};
+			const patch: {
+				title?: string;
+				description?: string;
+				status?: string;
+				goalAmount?: number;
+			} = {};
+			if (title !== undefined) patch.title = String(title).trim();
+			if (description !== undefined) patch.description = String(description).trim();
+			if (status !== undefined) {
+				const s = String(status).toUpperCase();
+				if (!ALLOWED_STATUS.includes(s)) {
+					throw new ValidationError('Estado invalido (DRAFT, ACTIVE o FINISHED).');
+				}
+				patch.status = s;
+			}
+			if (goalAmount !== undefined) {
+				const n = Number(goalAmount);
+				if (Number.isNaN(n) || n <= 0) throw new ValidationError('La meta debe ser un numero positivo.');
+				patch.goalAmount = n;
+			}
+			return res.json(await this.repo.updateCampaign(String(req.params.id), patch));
+		} catch (error) {
+			return this.handleError(error, res);
+		}
+	}
+
+	async deleteCampaign(req: Request, res: Response): Promise<Response> {
+		try {
+			await this.repo.deleteCampaign(String(req.params.id));
 			return res.status(204).send();
 		} catch (error) {
 			return this.handleError(error, res);

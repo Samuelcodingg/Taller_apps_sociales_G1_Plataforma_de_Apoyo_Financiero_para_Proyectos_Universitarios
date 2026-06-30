@@ -20,7 +20,14 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Profile", "Campaigns", "Donations", "Notifications", "AdminUsers"],
+  tagTypes: [
+    "Profile",
+    "Campaigns",
+    "Donations",
+    "Notifications",
+    "AdminUsers",
+    "AdminCampaigns",
+  ],
   endpoints: (builder) => ({
     registerCreator: builder.mutation<
       RegisterCreatorResponse,
@@ -316,8 +323,71 @@ export const apiSlice = createApi({
       query: (id) => ({ url: `/api/admin/users/${id}`, method: "DELETE" }),
       invalidatesTags: ["AdminUsers"],
     }),
+
+    // --- Admin: gestion de proyectos (campañas) ---
+    adminCampaigns: builder.query<
+      AdminCampaignListItem[],
+      { search?: string; status?: string; sort?: string } | void
+    >({
+      query: (params) => {
+        const q = new URLSearchParams();
+        if (params?.search) q.set("search", params.search);
+        if (params?.status) q.set("status", params.status);
+        if (params?.sort) q.set("sort", params.sort);
+        const qs = q.toString();
+        return { url: `/api/admin/campaigns${qs ? `?${qs}` : ""}`, method: "GET" };
+      },
+      providesTags: ["AdminCampaigns"],
+    }),
+
+    adminCampaignDetail: builder.query<AdminCampaignDetail, string>({
+      query: (id) => ({ url: `/api/admin/campaigns/${id}`, method: "GET" }),
+    }),
+
+    adminUpdateCampaign: builder.mutation<
+      AdminCampaignListItem,
+      {
+        id: string;
+        data: { title?: string; description?: string; status?: string; goalAmount?: number };
+      }
+    >({
+      query: ({ id, data }) => ({ url: `/api/admin/campaigns/${id}`, method: "PUT", body: data }),
+      invalidatesTags: ["AdminCampaigns"],
+    }),
+
+    adminDeleteCampaign: builder.mutation<void, string>({
+      query: (id) => ({ url: `/api/admin/campaigns/${id}`, method: "DELETE" }),
+      invalidatesTags: ["AdminCampaigns"],
+    }),
   }),
 });
+
+export type AdminCampaignListItem = {
+  id: string;
+  title: string;
+  status: string;
+  goalAmount: number;
+  currentAmount: number;
+  categories: string[];
+  creatorId: string | null;
+  creatorName: string;
+  creatorEmail: string | null;
+  donorsCount: number;
+  createdAt: string;
+  endDate: string;
+};
+
+export type AdminCampaignDetail = AdminCampaignListItem & {
+  description: string;
+  donations: Array<{
+    id: string;
+    amount: number;
+    campaignTitle: string | null;
+    status: string;
+    isAnonymous: boolean;
+    createdAt: string;
+  }>;
+};
 
 // Tipos del panel de administracion.
 export type AdminUserListItem = {
@@ -377,4 +447,8 @@ export const {
   useAdminCreateUserMutation,
   useAdminUpdateUserMutation,
   useAdminDeleteUserMutation,
+  useAdminCampaignsQuery,
+  useAdminCampaignDetailQuery,
+  useAdminUpdateCampaignMutation,
+  useAdminDeleteCampaignMutation,
 } = apiSlice;

@@ -35,4 +35,18 @@ router.delete('/users/:id', authenticate, requireAdmin, (req, res) =>
 	controller.deleteUser(req, res),
 );
 
+// Gestion de proyectos (campañas).
+router.get('/campaigns', authenticate, requireAdmin, (req, res) =>
+	controller.listCampaigns(req, res),
+);
+router.get('/campaigns/:id', authenticate, requireAdmin, (req, res) =>
+	controller.getCampaign(req, res),
+);
+router.put('/campaigns/:id', authenticate, requireAdmin, (req, res) =>
+	controller.updateCampaign(req, res),
+);
+router.delete('/campaigns/:id', authenticate, requireAdmin, (req, res) =>
+	controller.deleteCampaign(req, res),
+);
+
 export { router as adminRouter };
