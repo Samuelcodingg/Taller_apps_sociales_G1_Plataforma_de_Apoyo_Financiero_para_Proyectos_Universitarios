@@ -9,6 +9,8 @@ import { GetCampaignProgress } from './application/GetCampaignProgress';
 import { GetMyDonations } from './application/GetMyDonations';
 import { GetMyNotifications } from './application/GetMyNotifications';
 import { MarkNotificationsRead } from './application/MarkNotificationsRead';
+import { GetIncomingPending } from './application/GetIncomingPending';
+import { ConfirmIncomingDonation } from './application/ConfirmIncomingDonation';
 import { createAuthMiddleware, createOptionalAuthMiddleware } from '../../shared/http/authMiddleware';
 import { JwtVerifier } from '../../shared/security/JwtVerifier';
 
@@ -26,6 +28,8 @@ const getProgress = new GetCampaignProgress(repository);
 const getMyDonations = new GetMyDonations(repository);
 const getMyNotifications = new GetMyNotifications(repository);
 const markNotificationsRead = new MarkNotificationsRead(repository);
+const getIncomingPending = new GetIncomingPending(repository);
+const confirmIncomingDonation = new ConfirmIncomingDonation(repository);
 
 // 3. Entrypoint.
 const controller = new HttpController(
@@ -35,6 +39,8 @@ const controller = new HttpController(
 	getMyDonations,
 	getMyNotifications,
 	markNotificationsRead,
+	getIncomingPending,
+	confirmIncomingDonation,
 );
 
 // 4. Middlewares de auth.
@@ -44,6 +50,11 @@ const authenticate = createAuthMiddleware(jwtVerifier);
 // 5. Rutas HTTP.
 router.post('/donations', optionalAuth, (req, res) => controller.donate(req, res));
 router.get('/me/donations', authenticate, (req, res) => controller.myDonations(req, res));
+// Yapeos pendientes de confirmar (creador) y su confirmación.
+router.get('/me/incoming-pending', authenticate, (req, res) => controller.incomingPending(req, res));
+router.post('/donations/:donationId/confirm-incoming', authenticate, (req, res) =>
+	controller.confirmIncoming(req, res),
+);
 router.get('/me/notifications', authenticate, (req, res) => controller.notifications(req, res));
 router.post('/me/notifications/read', authenticate, (req, res) => controller.readNotifications(req, res));
 router.post('/payments/webhook', (req, res) => controller.webhook(req, res));

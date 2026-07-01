@@ -12,6 +12,8 @@ export interface UpdateProfileInput {
 	biography?: string | null;
 	birthDate?: string | null; // ISO date (yyyy-mm-dd)
 	photoUrl?: string | null;
+	// QR de Yape del creador (data URL). Se muestra al donar para "yapear".
+	yapeQrUrl?: string | null;
 	countryId?: string | null;
 	// Nombre del pais (texto libre). Si llega, el repositorio resuelve/crea el
 	// pais en el catalogo y asigna su id. Permite editar el pais sin un catalogo previo.
@@ -28,6 +30,7 @@ export interface ProfileDTO {
 	birthDate: string | null;
 	biography: string | null;
 	photoUrl: string | null;
+	yapeQrUrl: string | null;
 	country: { id: string; name: string | null } | null;
 	institution: { id: string; name: string } | null;
 	socialNetworks: Array<{ id: string; platform: string; link: string }>;
@@ -44,6 +47,7 @@ export const toProfileDTO = (profile: Profile): ProfileDTO => ({
 	birthDate: profile.birthDate ? profile.birthDate.toISOString().slice(0, 10) : null,
 	biography: profile.biography,
 	photoUrl: profile.photoUrl,
+	yapeQrUrl: profile.yapeQrUrl,
 	country: profile.country,
 	institution: profile.institution,
 	socialNetworks: profile.socialNetworks,

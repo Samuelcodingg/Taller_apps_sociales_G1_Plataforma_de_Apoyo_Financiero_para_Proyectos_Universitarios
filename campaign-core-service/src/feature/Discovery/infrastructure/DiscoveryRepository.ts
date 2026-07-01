@@ -272,6 +272,7 @@ export class DiscoveryRepository implements IDiscoveryRepository {
 				university: this.creatorUniversity(row),
 				career: null,
 				verified,
+				yapeQrUrl: null,
 			},
 			donorsCount: row._count.donations,
 			likes: 0,

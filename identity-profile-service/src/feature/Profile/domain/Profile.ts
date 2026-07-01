@@ -23,6 +23,7 @@ export interface Profile {
 	birthDate: Date | null;
 	biography: string | null;
 	photoUrl: string | null;
+	yapeQrUrl: string | null;
 	countryId: string | null;
 	institutionId: string | null;
 	updatedAt: Date;

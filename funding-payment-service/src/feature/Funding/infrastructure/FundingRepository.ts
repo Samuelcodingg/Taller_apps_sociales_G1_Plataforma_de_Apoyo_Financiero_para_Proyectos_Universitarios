@@ -7,6 +7,7 @@ import {
 	CreateDonationData,
 	CreatePaymentData,
 	IFundingRepository,
+	IncomingPendingRow,
 	MyDonationRow,
 	NotificationRow,
 	PaymentRecord,
@@ -80,6 +81,63 @@ export class FundingRepository implements IFundingRepository {
 			campaignId: p.donation.campaignId ?? '',
 			amount: num(p.donation.amount),
 		};
+	}
+
+	async findPaymentByDonation(donationId: string): Promise<PaymentRecord | null> {
+		const p = await this.prisma.payment.findFirst({
+			where: { donationId },
+			include: { donation: true },
+			orderBy: { createdAt: 'desc' },
+		});
+		if (!p || !p.donation) return null;
+		return {
+			paymentId: p.id,
+			status: p.status,
+			donationId: p.donationId ?? '',
+			campaignId: p.donation.campaignId ?? '',
+			amount: num(p.donation.amount),
+		};
+	}
+
+	async listIncomingPending(creatorId: string): Promise<IncomingPendingRow[]> {
+		// Pagos PENDING de donaciones a campañas del creador.
+		const payments = await this.prisma.payment.findMany({
+			where: {
+				status: 'PENDING',
+				donation: { campaign: { creatorId } },
+			},
+			include: {
+				donation: {
+					include: {
+						campaign: { select: { title: true } },
+						donor: { include: { profile: true } },
+					},
+				},
+			},
+			orderBy: { createdAt: 'desc' },
+			take: 200,
+		});
+
+		return payments
+			.filter((p) => p.donation)
+			.map((p) => {
+				const d = p.donation!;
+				const prof = d.donor?.profile?.[0];
+				const donorName = d.isAnonymous
+					? 'Anónimo'
+					: `${prof?.names ?? ''} ${prof?.surnames ?? ''}`.trim() || 'Donante';
+				return {
+					donationId: d.id,
+					campaignId: d.campaignId ?? '',
+					campaignTitle: d.campaign?.title ?? '',
+					amount: num(d.amount),
+					paymentMethod: p.paymentMethod,
+					donorName,
+					isAnonymous: !!d.isAnonymous,
+					message: d.message ?? null,
+					donatedAt: d.created_at,
+				};
+			});
 	}
 
 	async markPaymentStatus(paymentId: string, status: string): Promise<void> {

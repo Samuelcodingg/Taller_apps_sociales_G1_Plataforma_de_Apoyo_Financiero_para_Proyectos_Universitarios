@@ -80,6 +80,7 @@ export interface CreatorDTO {
 	university: string | null;
 	career: string | null;
 	verified: boolean;
+	yapeQrUrl: string | null; // QR de Yape del creador (para donar por Yape)
 }
 
 export interface MediaDTO {

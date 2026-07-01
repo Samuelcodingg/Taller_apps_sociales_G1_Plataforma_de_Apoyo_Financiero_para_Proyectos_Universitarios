@@ -21,6 +21,7 @@ const buildProfile = (overrides: Partial<Profile> = {}): Profile => ({
 	institution: { id: 'inst-1', name: 'UNI' },
 	university: null,
 	school: null,
+	yapeQrUrl: null,
 	socialNetworks: [{ id: 'sn-1', platform: 'LINKEDIN', link: 'https://x' }],
 	...overrides,
 });

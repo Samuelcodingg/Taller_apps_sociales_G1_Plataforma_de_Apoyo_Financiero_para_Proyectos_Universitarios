@@ -38,6 +38,10 @@ export class UpdateMyProfile {
 			fields.photoUrl = input.photoUrl;
 		}
 
+		if (input.yapeQrUrl !== undefined) {
+			fields.yapeQrUrl = input.yapeQrUrl;
+		}
+
 		if (input.countryId !== undefined) {
 			fields.countryId = input.countryId;
 		}

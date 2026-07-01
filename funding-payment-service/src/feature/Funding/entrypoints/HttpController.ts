@@ -7,6 +7,8 @@ import { GetCampaignProgress } from '../application/GetCampaignProgress';
 import { GetMyDonations } from '../application/GetMyDonations';
 import { GetMyNotifications } from '../application/GetMyNotifications';
 import { MarkNotificationsRead } from '../application/MarkNotificationsRead';
+import { GetIncomingPending } from '../application/GetIncomingPending';
+import { ConfirmIncomingDonation } from '../application/ConfirmIncomingDonation';
 import { PaymentStatus } from '../application/dtos';
 
 export class HttpController {
@@ -17,7 +19,35 @@ export class HttpController {
 		private readonly getMyDonations: GetMyDonations,
 		private readonly getMyNotifications: GetMyNotifications,
 		private readonly markNotificationsRead: MarkNotificationsRead,
+		private readonly getIncomingPending: GetIncomingPending,
+		private readonly confirmIncomingDonation: ConfirmIncomingDonation,
 	) {}
+
+	// Yapeos pendientes de confirmar de las campañas del creador autenticado.
+	async incomingPending(req: Request, res: Response): Promise<Response> {
+		try {
+			const creatorId = req.auth?.userId;
+			if (!creatorId) throw new UnauthorizedError('No se pudo identificar al usuario.');
+			return res.status(200).json(await this.getIncomingPending.execute(creatorId));
+		} catch (error) {
+			return this.handleError(res, error);
+		}
+	}
+
+	// El creador confirma un yapeo recibido (marca COMPLETED y suma al progreso).
+	async confirmIncoming(req: Request, res: Response): Promise<Response> {
+		try {
+			const creatorId = req.auth?.userId;
+			if (!creatorId) throw new UnauthorizedError('No se pudo identificar al usuario.');
+			const result = await this.confirmIncomingDonation.execute(
+				creatorId,
+				String(req.params.donationId),
+			);
+			return res.status(200).json(result);
+		} catch (error) {
+			return this.handleError(res, error);
+		}
+	}
 
 	async notifications(req: Request, res: Response): Promise<Response> {
 		try {

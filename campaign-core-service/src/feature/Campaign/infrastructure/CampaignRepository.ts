@@ -407,6 +407,7 @@ export class CampaignRepository implements ICampaignRepository {
 			university: profile?.institution?.name ?? universityFromData,
 			career,
 			verified,
+			yapeQrUrl: profile?.yapeQrUrl ?? null,
 		};
 	}
 

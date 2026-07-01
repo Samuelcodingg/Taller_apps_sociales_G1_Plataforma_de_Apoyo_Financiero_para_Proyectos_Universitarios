@@ -54,6 +54,8 @@ const Campana = () => {
   const [anon, setAnon] = useState(false);
   const [success, setSuccess] = useState(false);
   const [donateOpen, setDonateOpen] = useState(false);
+  const [payMethod, setPayMethod] = useState<"CARD" | "YAPE">("CARD");
+  const [yapePending, setYapePending] = useState(false);
 
   // Edicion (dueño)
   const [editForm, setEditForm] = useState({ title: "", description: "", goalAmount: "", endDate: "" });
@@ -129,10 +131,24 @@ const Campana = () => {
     }
   };
 
+  // Donación por Yape: registra la donación como PENDIENTE (no se confirma
+  // automáticamente). El creador la confirmará cuando vea el yapeo en su app.
+  const yapeDonate = async () => {
+    const v = parseInt(amount) || 0;
+    if (v <= 0) { toast.error("Monto inválido"); return; }
+    try {
+      await donateMut({ campaignId: c.id, amount: v, isAnonymous: anon, paymentMethod: "YAPE" }).unwrap();
+      setYapePending(true);
+      toast.success("Donación registrada. Queda pendiente de que el creador confirme tu Yape.");
+    } catch (e) {
+      toast.error(getErrorMessage(e));
+    }
+  };
+
   // Reinicia el diálogo al abrir/cerrar para permitir volver a donar.
   const onDonateOpenChange = (open: boolean) => {
     setDonateOpen(open);
-    if (!open) setSuccess(false);
+    if (!open) { setSuccess(false); setYapePending(false); setPayMethod("CARD"); }
   };
 
   const requireLogin = (): boolean => {
@@ -440,13 +456,22 @@ const Campana = () => {
                 <Button className="w-full bg-gradient-warm shadow-warm" size="lg"><Heart className="h-4 w-4 mr-2" />Donar ahora</Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>{success ? "¡Donación exitosa!" : "Apoya este proyecto"}</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{success ? "¡Donación exitosa!" : yapePending ? "Donación registrada" : "Apoya este proyecto"}</DialogTitle></DialogHeader>
                 {success ? (
                   <div className="text-center py-6 space-y-4">
                     <CheckCircle2 className="h-14 w-14 text-secondary mx-auto" />
                     <p className="text-sm text-muted-foreground">Te enviamos el comprobante a tu correo.</p>
                     <div className="bg-muted rounded-lg p-3 text-left text-sm flex items-center gap-2"><Mail className="h-4 w-4 text-secondary" /> Comprobante #DN-{Math.floor(Math.random() * 9999)}</div>
                     <Button variant="outline" className="w-full" onClick={() => setSuccess(false)}>Donar otra vez</Button>
+                  </div>
+                ) : yapePending ? (
+                  <div className="text-center py-6 space-y-4">
+                    <CheckCircle2 className="h-14 w-14 text-secondary mx-auto" />
+                    <p className="text-sm text-muted-foreground">
+                      Tu donación quedó <span className="font-medium">pendiente</span>. El creador la confirmará
+                      cuando verifique tu Yape y se sumará al progreso de la campaña.
+                    </p>
+                    <Button variant="outline" className="w-full" onClick={() => setYapePending(false)}>Hacer otra donación</Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -463,10 +488,48 @@ const Campana = () => {
                       <Label htmlFor="anon" className="flex items-center gap-2 cursor-pointer"><EyeOff className="h-4 w-4" />Donar de forma anónima</Label>
                       <Switch id="anon" checked={anon} onCheckedChange={setAnon} />
                     </div>
-                    <div className="rounded-lg border p-3 flex items-center gap-2 text-sm"><CreditCard className="h-4 w-4 text-muted-foreground" /> Pago seguro vía pasarela externa</div>
-                    <Button className="w-full bg-gradient-warm shadow-warm" onClick={donate} disabled={isDonating}>
-                      {isDonating ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Procesando...</>) : "Confirmar donación"}
-                    </Button>
+
+                    {/* Método de pago */}
+                    <div className="space-y-2">
+                      <Label>Método de pago</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button type="button" variant={payMethod === "CARD" ? "default" : "outline"} size="sm" onClick={() => setPayMethod("CARD")}>
+                          <CreditCard className="h-4 w-4 mr-1" />Tarjeta
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={payMethod === "YAPE" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPayMethod("YAPE")}
+                          disabled={!c.creator.yapeQrUrl}
+                          title={c.creator.yapeQrUrl ? "" : "El creador aún no configuró su Yape"}
+                        >
+                          Yape
+                        </Button>
+                      </div>
+                    </div>
+
+                    {payMethod === "CARD" ? (
+                      <>
+                        <div className="rounded-lg border p-3 flex items-center gap-2 text-sm"><CreditCard className="h-4 w-4 text-muted-foreground" /> Pago seguro vía pasarela externa</div>
+                        <Button className="w-full bg-gradient-warm shadow-warm" onClick={donate} disabled={isDonating}>
+                          {isDonating ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Procesando...</>) : "Confirmar donación"}
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="rounded-lg border p-3 text-center space-y-2">
+                          <p className="text-sm text-muted-foreground">Escanea el QR desde tu app de Yape y paga <span className="font-medium">S/ {parseInt(amount) || 0}</span>.</p>
+                          {c.creator.yapeQrUrl && (
+                            <img src={c.creator.yapeQrUrl} alt="QR de Yape del creador" className="h-52 w-52 object-contain mx-auto rounded-lg border bg-white" />
+                          )}
+                          <p className="text-xs text-muted-foreground">Luego pulsa "Ya yapeé" para registrar tu donación (quedará pendiente hasta que el creador la confirme).</p>
+                        </div>
+                        <Button className="w-full bg-gradient-warm shadow-warm" onClick={yapeDonate} disabled={isDonating}>
+                          {isDonating ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Registrando...</>) : "Ya yapeé"}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )}
               </DialogContent>

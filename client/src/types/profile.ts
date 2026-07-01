@@ -7,6 +7,7 @@ export type ProfileResponse = {
   birthDate: string | null;
   biography: string | null;
   photoUrl: string | null;
+  yapeQrUrl: string | null;
   country: { id: string; name: string | null } | null;
   institution: { id: string; name: string } | null;
   socialNetworks: Array<{ id: string; platform: string; link: string }>;
@@ -22,6 +23,7 @@ export type UpdateProfileRequest = {
   biography?: string | null;
   birthDate?: string | null; // ISO yyyy-mm-dd
   photoUrl?: string | null;
+  yapeQrUrl?: string | null; // QR de Yape del creador (data URL)
   country?: string | null; // nombre del pais (texto)
   socialNetworks?: Array<{ platform: string; link: string }>;
 };

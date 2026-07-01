@@ -30,6 +30,7 @@ class CapturingProfileRepository implements IProfileRepository {
 			institution: null,
 			university: null,
 			school: null,
+			yapeQrUrl: null,
 			socialNetworks: (fields.socialNetworks ?? []).map((sn, i) => ({
 				id: `sn-${i}`,
 				platform: sn.platform,

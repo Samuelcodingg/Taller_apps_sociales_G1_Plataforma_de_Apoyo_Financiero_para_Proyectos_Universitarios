@@ -41,7 +41,12 @@ export interface IFundingRepository {
 	createPayment(data: CreatePaymentData): Promise<string>; // devuelve paymentId
 
 	findPaymentByTransaction(transactionId: string): Promise<PaymentRecord | null>;
+	findPaymentByDonation(donationId: string): Promise<PaymentRecord | null>;
 	markPaymentStatus(paymentId: string, status: string): Promise<void>;
+
+	// Donaciones con pago PENDING para campañas creadas por `creatorId` (para que
+	// el creador confirme los yapeos recibidos).
+	listIncomingPending(creatorId: string): Promise<IncomingPendingRow[]>;
 
 	// Suma `amount` a campaign.current_amount (progreso financiero).
 	incrementCampaignAmount(campaignId: string, amount: number): Promise<void>;
@@ -84,6 +89,18 @@ export interface NotificationRow {
 	entityId: string | null;
 	isRead: boolean;
 	createdAt: Date;
+}
+
+export interface IncomingPendingRow {
+	donationId: string;
+	campaignId: string;
+	campaignTitle: string;
+	amount: number;
+	paymentMethod: string;
+	donorName: string;
+	isAnonymous: boolean;
+	message: string | null;
+	donatedAt: Date;
 }
 
 export interface MyDonationRow {

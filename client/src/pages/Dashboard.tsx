@@ -7,14 +7,31 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { TrendingUp, Target, Users, Megaphone, Plus, Loader2 } from "lucide-react";
-import { useListCampaignsQuery } from "@/slices/apiSlice";
+import { TrendingUp, Target, Users, Megaphone, Plus, Loader2, Check } from "lucide-react";
+import { toast } from "sonner";
+import {
+  useListCampaignsQuery,
+  useIncomingPendingQuery,
+  useConfirmIncomingMutation,
+} from "@/slices/apiSlice";
+import { getErrorMessage } from "@/lib/getErrorMessage";
 
 const PLACEHOLDER_IMAGE = "https://placehold.co/160x160?text=Campa%C3%B1a";
 
 const Dashboard = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const { data: all, isLoading } = useListCampaignsQuery();
+  const { data: pending = [] } = useIncomingPendingQuery();
+  const [confirmIncoming, { isLoading: isConfirming }] = useConfirmIncomingMutation();
+
+  const confirmYape = async (donationId: string) => {
+    try {
+      await confirmIncoming(donationId).unwrap();
+      toast.success("Donación confirmada y sumada al progreso");
+    } catch (e) {
+      toast.error(getErrorMessage(e));
+    }
+  };
 
   // Solo las campañas del creador autenticado.
   const mine = useMemo(
@@ -61,6 +78,34 @@ const Dashboard = () => {
             </Card>
           ))}
         </div>
+
+        {pending.length > 0 && (
+          <Card className="p-5 space-y-3 border-amber-400/50">
+            <h2 className="font-semibold flex items-center gap-2">
+              Yapeos por confirmar
+              <Badge className="bg-amber-500 text-white hover:bg-amber-500">{pending.length}</Badge>
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Cuando veas el abono en tu app de Yape, confirma la donación para sumarla al progreso de tu campaña.
+            </p>
+            <div className="space-y-2">
+              {pending.map((p) => (
+                <div key={p.donationId} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                  <div className="text-sm min-w-0">
+                    <div className="font-medium truncate">{p.campaignTitle}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {p.donorName} · S/ {p.amount} · {new Date(p.donatedAt).toLocaleDateString("es-PE")}
+                      {p.message ? ` · "${p.message}"` : ""}
+                    </div>
+                  </div>
+                  <Button size="sm" onClick={() => confirmYape(p.donationId)} disabled={isConfirming}>
+                    <Check className="h-4 w-4 mr-1" />Confirmar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         <Card className="p-5 space-y-4">
           <h2 className="font-semibold">Mis campañas</h2>

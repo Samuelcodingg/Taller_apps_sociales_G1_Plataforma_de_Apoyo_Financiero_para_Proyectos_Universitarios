@@ -191,13 +191,43 @@ export const apiSlice = createApi({
     // --- Funding & Payment Service ---
     donate: builder.mutation<
       { donationId: string; transactionId: string; status: string; amount: number },
-      { campaignId: string; amount: number; isAnonymous: boolean; message?: string }
+      { campaignId: string; amount: number; isAnonymous: boolean; message?: string; paymentMethod?: string }
     >({
       query: (body) => ({
         url: `${BASE_FUNDING_URL}/api/donations`,
         method: "POST",
         body,
       }),
+    }),
+
+    // Yapeos pendientes de confirmar de las campañas del creador.
+    incomingPending: builder.query<
+      Array<{
+        donationId: string;
+        campaignId: string;
+        campaignTitle: string;
+        amount: number;
+        paymentMethod: string;
+        donorName: string;
+        isAnonymous: boolean;
+        message: string | null;
+        donatedAt: string;
+      }>,
+      void
+    >({
+      query: () => ({ url: `${BASE_FUNDING_URL}/api/me/incoming-pending`, method: "GET" }),
+      providesTags: ["Donations"],
+    }),
+
+    confirmIncoming: builder.mutation<
+      { donationId: string; status: string; applied: boolean },
+      string
+    >({
+      query: (donationId) => ({
+        url: `${BASE_FUNDING_URL}/api/donations/${donationId}/confirm-incoming`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Donations", "Campaigns"],
     }),
 
     confirmPayment: builder.mutation<
@@ -435,6 +465,8 @@ export const {
   useInteractCampaignMutation,
   useDonateMutation,
   useConfirmPaymentMutation,
+  useIncomingPendingQuery,
+  useConfirmIncomingMutation,
   useMyDonationsQuery,
   useMyInteractionsQuery,
   useMyNotificationsQuery,

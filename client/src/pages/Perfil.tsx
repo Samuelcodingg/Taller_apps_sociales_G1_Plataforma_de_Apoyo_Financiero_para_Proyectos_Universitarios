@@ -42,7 +42,9 @@ const Perfil = () => {
   const [portfolio, setPortfolio] = useState("");
   const [country, setCountry] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [yapeQrUrl, setYapeQrUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const yapeInputRef = useRef<HTMLInputElement | null>(null);
 
   // Campos de solo lectura. Universidad y escuela vienen del reporte de matricula.
   const university = profile?.university || profile?.institution?.name || user?.university || "";
@@ -56,6 +58,7 @@ const Perfil = () => {
     setBirthDate(profile?.birthDate || user?.birthDate || "");
     setCountry(profile?.country?.name || user?.country || "");
     setPhotoUrl(profile?.photoUrl ?? null);
+    setYapeQrUrl(profile?.yapeQrUrl ?? null);
     const networks = profile?.socialNetworks ?? [];
     setLinkedin(networks.find((n) => n.platform === LINKEDIN)?.link || "");
     setPortfolio(networks.find((n) => n.platform === PORTFOLIO)?.link || "");
@@ -93,6 +96,37 @@ const Perfil = () => {
     reader.readAsDataURL(file);
   };
 
+  // Lee el QR de Yape, lo redimensiona a máx 512px (conservando proporción para
+  // que siga siendo legible/escaneable) y lo guarda como data URL.
+  const handleYapeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecciona una imagen válida del QR");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 512;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, w, h);
+        setYapeQrUrl(canvas.toDataURL("image/jpeg", 0.9));
+        toast.success("QR listo. Guarda los cambios para aplicarlo.");
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -110,6 +144,7 @@ const Perfil = () => {
         birthDate: birthDate || null,
         country: country.trim() || null,
         photoUrl: photoUrl ?? null,
+        yapeQrUrl: yapeQrUrl ?? null,
         socialNetworks,
       }).unwrap();
 
@@ -203,6 +238,46 @@ const Perfil = () => {
                 <div className="space-y-2">
                   <Label>Escuela</Label>
                   <Input value={school || "N/A"} readOnly />
+                </div>
+              </div>
+            )}
+
+            {isCreator && (
+              <div className="space-y-2 rounded-xl border p-4">
+                <Label>QR de Yape (para recibir donaciones)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Sube la imagen de tu código QR de Yape. Los donadores lo verán al elegir
+                  "Donar con Yape" y tú confirmarás el pago desde Mi panel.
+                </p>
+                <div className="flex items-center gap-4">
+                  {yapeQrUrl ? (
+                    <img
+                      src={yapeQrUrl}
+                      alt="QR de Yape"
+                      className="h-28 w-28 rounded-lg object-contain border bg-white"
+                    />
+                  ) : (
+                    <div className="h-28 w-28 rounded-lg border grid place-items-center text-xs text-muted-foreground">
+                      Sin QR
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={yapeInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleYapeChange}
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={() => yapeInputRef.current?.click()}>
+                      {yapeQrUrl ? "Cambiar QR" : "Subir QR"}
+                    </Button>
+                    {yapeQrUrl && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setYapeQrUrl(null)}>
+                        Quitar
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

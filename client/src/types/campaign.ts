@@ -24,6 +24,7 @@ export type CreatorDTO = {
   university: string | null;
   career: string | null;
   verified: boolean;
+  yapeQrUrl?: string | null;
 };
 
 export type CampaignSummary = {

@@ -6,6 +6,7 @@ export interface UpdateProfileFields {
 	biography?: string | null;
 	birthDate?: Date | null;
 	photoUrl?: string | null;
+	yapeQrUrl?: string | null;
 	countryId?: string | null;
 	// Nombre del pais; el repositorio lo resuelve/crea y asigna el countryId.
 	countryName?: string | null;
