@@ -12,6 +12,7 @@ import Validation from "@/pages/Validation";
 import { Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import MyDonations from "@/pages/MyDonations";
+import Guardados from "@/pages/Guardados";
 import { ROLES } from "@/lib/constants";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
@@ -29,6 +30,7 @@ const AppRoutes = () => {
       <Route path="/campana/:id" element={<Campana />} />
       <Route element={<ProtectedRoute isAllowed={!!user} />}>
         <Route path="/profile" element={<Perfil />} />
+        <Route path="/guardados" element={<Guardados />} />
       </Route>
       {/* Rutas del usuario "creator" */}
       <Route

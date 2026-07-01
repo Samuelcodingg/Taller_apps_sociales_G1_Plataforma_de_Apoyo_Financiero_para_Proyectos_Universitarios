@@ -1,14 +1,17 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RootState } from "@/store/store";
 import { useSelector } from "react-redux";
 import { getInitialsNames } from "@/lib/utils";
 import NotificationsBell from "@/components/NotificationsBell";
+import { useGetMyProfileQuery } from "@/slices/apiSlice";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const user = useSelector((state: RootState) => state.auth.user);
+  // Trae el perfil para mostrar la foto real en el header (si el usuario existe).
+  const { data: profile } = useGetMyProfileQuery(undefined, { skip: !user });
 
   return (
     <SidebarProvider>
@@ -27,8 +30,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <div className="flex items-center gap-3">
                 <NotificationsBell />
                 <Avatar className="h-9 w-9 ring-2 ring-primary/20">
+                  {profile?.photoUrl && <AvatarImage src={profile.photoUrl} alt="Foto de perfil" />}
                   <AvatarFallback className="bg-gradient-warm text-primary-foreground text-sm">
-                    {getInitialsNames(user.names, user.lastNames)}
+                    {getInitialsNames(profile?.names ?? user.names, profile?.surnames ?? user.lastNames)}
                   </AvatarFallback>
                 </Avatar>
               </div>

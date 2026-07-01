@@ -7,6 +7,7 @@ import {
   LogIn,
   Sparkles,
   ShieldCheck,
+  Bookmark,
 } from "lucide-react";
 
 // Usa VITE_API_URL si esta definida (p. ej. .env.local con http://localhost:3000
@@ -41,11 +42,13 @@ export const SIDEBAR_MAIN = [
 export const SIDEBAR_CREATOR = [
   { title: "Crear campaña", url: "/crear", icon: PlusCircle },
   { title: "Mi panel", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Guardados", url: "/guardados", icon: Bookmark },
   { title: "Mi perfil", url: "/profile", icon: User },
 ];
 
 export const SIDEBAR_DONOR = [
   { title: "Mis donaciones", url: "/donations", icon: LayoutDashboard },
+  { title: "Guardados", url: "/guardados", icon: Bookmark },
   { title: "Mi perfil", url: "/profile", icon: User },
 ];
 

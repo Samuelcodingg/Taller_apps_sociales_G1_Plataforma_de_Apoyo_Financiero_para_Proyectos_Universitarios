@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2 } from "lucide-react";
-import { allCategories, universities } from "@/lib/mock-data";
 import { useListCampaignsQuery } from "@/slices/apiSlice";
 import { mapSummaryToCampaign } from "@/lib/mapCampaign";
 
@@ -18,18 +17,37 @@ const Explorar = () => {
 
   const { data: campaignsData, isLoading } = useListCampaignsQuery();
 
+  // Solo campañas publicadas (los borradores no aparecen en el catalogo).
+  const active = useMemo(
+    () => (campaignsData ?? []).filter((c) => c.status === "ACTIVE"),
+    [campaignsData],
+  );
+
+  // Opciones de filtro derivadas de las campañas reales (no de mocks).
+  const categories = useMemo(
+    () => Array.from(new Set(active.flatMap((c) => c.categories))).sort(),
+    [active],
+  );
+  const universities = useMemo(
+    () =>
+      Array.from(
+        new Set(active.map((c) => c.creator.university).filter((u): u is string => !!u)),
+      ).sort(),
+    [active],
+  );
+
   const list = useMemo(() => {
-    // Solo campañas publicadas (los borradores no aparecen en el catalogo).
-    let r = (campaignsData ?? [])
-      .filter((c) => c.status === "ACTIVE")
-      .map(mapSummaryToCampaign);
-    if (q) r = r.filter((c) => c.title.toLowerCase().includes(q.toLowerCase()));
-    if (cat !== "all") r = r.filter((c) => c.categories.includes(cat));
-    if (uni !== "all") r = r.filter((c) => c.university === uni);
-    if (sort === "funded") r = [...r].sort((a, b) => b.raised - a.raised);
-    if (sort === "trending") r = [...r].sort((a, b) => b.trending - a.trending);
-    return r;
-  }, [campaignsData, q, cat, uni, sort]);
+    let r = active.filter((c) => {
+      if (q && !c.title.toLowerCase().includes(q.toLowerCase())) return false;
+      if (cat !== "all" && !c.categories.includes(cat)) return false;
+      if (uni !== "all" && c.creator.university !== uni) return false;
+      return true;
+    });
+    if (sort === "funded") r = [...r].sort((a, b) => b.currentAmount - a.currentAmount);
+    else if (sort === "trending") r = [...r].sort((a, b) => b.donorsCount - a.donorsCount);
+    else r = [...r].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)); // recent
+    return r.map(mapSummaryToCampaign);
+  }, [active, q, cat, uni, sort]);
 
   return (
     <AppLayout>
@@ -48,13 +66,13 @@ const Explorar = () => {
             <SelectTrigger><SelectValue placeholder="Categoría" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las categorías</SelectItem>
-              {allCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={uni} onValueChange={setUni}>
             <SelectTrigger><SelectValue placeholder="Universidad" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas las facultades</SelectItem>
+              <SelectItem value="all">Todas las universidades</SelectItem>
               {universities.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
             </SelectContent>
           </Select>
