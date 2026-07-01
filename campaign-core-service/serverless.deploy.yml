@@ -106,13 +106,12 @@ functions:
     handler: dist/lambda.handler
     events:
       - httpApi: '*'
-  # Cálculo PERIODICO del índice de viralidad (Tendencias): cada 6 horas
-  # recalcula y persiste campaign_metrics aunque nadie abra la sección.
-  trendingCron:
-    handler: dist/scheduled.recomputeTrending
-    timeout: 60
-    events:
-      - schedule: rate(6 hours)
+  # NOTA: el cálculo PERIODICO del índice de viralidad via EventBridge
+  # (schedule) está deshabilitado porque el rol IAM del deploy no tiene permisos
+  # de EventBridge (events:DescribeRule/PutRule/PutTargets). El índice se sigue
+  # recalculando en vivo en cada request de Tendencias (y persiste el snapshot).
+  # Para reactivarlo: añadir esos permisos al rol y descomentar el handler
+  # dist/scheduled.recomputeTrending con - schedule: rate(6 hours).
 
 resources:
   Resources:
