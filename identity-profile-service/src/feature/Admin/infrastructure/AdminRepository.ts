@@ -6,6 +6,7 @@ import { ConflictError, NotFoundError } from '../../../shared/errors';
 import {
 	AdminCampaignDetailDTO,
 	AdminCampaignListItemDTO,
+	AdminPendingDonationDTO,
 	AdminUserDetailDTO,
 	AdminUserListItemDTO,
 	CreateUserData,
@@ -404,6 +405,73 @@ export class AdminRepository {
 		});
 		const list = await this.listCampaigns({});
 		return list.find((c) => c.id === id) ?? (await this.getCampaignDetail(id));
+	}
+
+	// ---------- Donaciones pendientes (confirmacion por admin) ----------
+	async listPendingDonations(): Promise<AdminPendingDonationDTO[]> {
+		const payments = await this.prisma.payment.findMany({
+			where: { status: 'PENDING' },
+			include: {
+				donation: {
+					include: {
+						campaign: { include: { creator: { include: { profile: true } } } },
+						donor: { include: { profile: true } },
+					},
+				},
+			},
+			orderBy: { createdAt: 'desc' },
+			take: 300,
+		});
+
+		return payments
+			.filter((p) => p.donation)
+			.map((p) => {
+				const d = p.donation!;
+				const donorProf = d.donor?.profile?.[0];
+				const creatorProf = d.campaign?.creator?.profile?.[0];
+				const donorName = d.isAnonymous
+					? 'Anónimo'
+					: `${donorProf?.names ?? ''} ${donorProf?.surnames ?? ''}`.trim() || 'Donante';
+				const creatorName =
+					`${creatorProf?.names ?? ''} ${creatorProf?.surnames ?? ''}`.trim() || 'Usuario';
+				return {
+					donationId: d.id,
+					campaignId: d.campaignId ?? '',
+					campaignTitle: d.campaign?.title ?? '',
+					creatorName,
+					donorName,
+					amount: dec(d.amount),
+					paymentMethod: p.paymentMethod,
+					isAnonymous: !!d.isAnonymous,
+					message: d.message ?? null,
+					createdAt: d.created_at.toISOString(),
+				};
+			});
+	}
+
+	async confirmDonation(donationId: string): Promise<void> {
+		const payment = await this.prisma.payment.findFirst({
+			where: { donationId },
+			include: { donation: true },
+			orderBy: { createdAt: 'desc' },
+		});
+		if (!payment || !payment.donation) {
+			throw new NotFoundError('No existe la donación indicada.');
+		}
+		if (payment.status === 'COMPLETED' || payment.status === 'FAILED') {
+			return; // idempotente
+		}
+		const campaignId = payment.donation.campaignId;
+		const amount = dec(payment.donation.amount);
+		await this.prisma.$transaction(async (tx) => {
+			await tx.payment.update({ where: { id: payment.id }, data: { status: 'COMPLETED' } });
+			if (campaignId) {
+				await tx.campaign.update({
+					where: { id: campaignId },
+					data: { currentAmount: { increment: amount }, updated_at: new Date() },
+				});
+			}
+		});
 	}
 
 	async deleteCampaign(id: string): Promise<void> {

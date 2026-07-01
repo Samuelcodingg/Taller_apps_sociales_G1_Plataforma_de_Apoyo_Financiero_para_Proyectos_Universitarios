@@ -189,6 +189,24 @@ export class AdminHttpController {
 		}
 	}
 
+	// ---------- Donaciones pendientes ----------
+	async listPendingDonations(_req: Request, res: Response): Promise<Response> {
+		try {
+			return res.json(await this.repo.listPendingDonations());
+		} catch (error) {
+			return this.handleError(error, res);
+		}
+	}
+
+	async confirmDonation(req: Request, res: Response): Promise<Response> {
+		try {
+			await this.repo.confirmDonation(String(req.params.donationId));
+			return res.json({ ok: true });
+		} catch (error) {
+			return this.handleError(error, res);
+		}
+	}
+
 	private handleError(error: unknown, res: Response): Response {
 		if (error instanceof ValidationError) {
 			return res.status(400).json({ message: error.message });

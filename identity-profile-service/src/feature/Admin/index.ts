@@ -49,4 +49,12 @@ router.delete('/campaigns/:id', authenticate, requireAdmin, (req, res) =>
 	controller.deleteCampaign(req, res),
 );
 
+// Donaciones pendientes (yapeos) — el admin las lista y confirma.
+router.get('/pending-donations', authenticate, requireAdmin, (req, res) =>
+	controller.listPendingDonations(req, res),
+);
+router.post('/donations/:donationId/confirm', authenticate, requireAdmin, (req, res) =>
+	controller.confirmDonation(req, res),
+);
+
 export { router as adminRouter };

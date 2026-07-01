@@ -40,7 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, ShieldAlert, Eye, Pencil, Trash2, Plus, Loader2 } from "lucide-react";
+import { Search, ShieldAlert, Eye, Pencil, Trash2, Plus, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import {
   useAdminUsersQuery,
@@ -52,6 +52,8 @@ import {
   useAdminCampaignDetailQuery,
   useAdminUpdateCampaignMutation,
   useAdminDeleteCampaignMutation,
+  useAdminPendingDonationsQuery,
+  useAdminConfirmDonationMutation,
   AdminUserListItem,
   AdminCampaignListItem,
 } from "@/slices/apiSlice";
@@ -89,12 +91,16 @@ const Admin = () => {
           <TabsList>
             <TabsTrigger value="users">Usuarios</TabsTrigger>
             <TabsTrigger value="campaigns">Proyectos</TabsTrigger>
+            <TabsTrigger value="payments">Pagos</TabsTrigger>
           </TabsList>
           <TabsContent value="users" className="mt-4">
             <UsersModule />
           </TabsContent>
           <TabsContent value="campaigns" className="mt-4">
             <CampaignsModule />
+          </TabsContent>
+          <TabsContent value="payments" className="mt-4">
+            <PaymentsModule />
           </TabsContent>
         </Tabs>
       </div>
@@ -351,6 +357,70 @@ const CampaignsModule = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </Card>
+  );
+};
+
+// ===================== MÓDULO PAGOS (yapeos pendientes) =====================
+const PaymentsModule = () => {
+  const { data: pending = [], isLoading } = useAdminPendingDonationsQuery();
+  const [confirmDonation, { isLoading: isConfirming }] = useAdminConfirmDonationMutation();
+
+  const confirm = async (donationId: string) => {
+    try {
+      await confirmDonation(donationId).unwrap();
+      toast.success("Donación confirmada y sumada al progreso");
+    } catch (e) {
+      toast.error(getErrorMessage(e));
+    }
+  };
+
+  return (
+    <Card className="p-5 space-y-4">
+      <div>
+        <h2 className="font-semibold">Donaciones pendientes de confirmar</h2>
+        <p className="text-xs text-muted-foreground">
+          Yapeos (u otros pagos) en estado pendiente. Al confirmar, se marcan como completados y se suman al progreso de la campaña.
+        </p>
+      </div>
+      {isLoading ? (
+        <div className="flex justify-center py-12 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /></div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Campaña</TableHead>
+              <TableHead>Creador</TableHead>
+              <TableHead>Donante</TableHead>
+              <TableHead>Monto</TableHead>
+              <TableHead>Método</TableHead>
+              <TableHead>Fecha</TableHead>
+              <TableHead className="text-right">Acción</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pending.length === 0 ? (
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No hay donaciones pendientes.</TableCell></TableRow>
+            ) : (
+              pending.map((p) => (
+                <TableRow key={p.donationId}>
+                  <TableCell className="max-w-[200px] truncate" title={p.campaignTitle}>{p.campaignTitle}</TableCell>
+                  <TableCell className="text-muted-foreground">{p.creatorName}</TableCell>
+                  <TableCell>{p.donorName}</TableCell>
+                  <TableCell>S/ {p.amount}</TableCell>
+                  <TableCell><Badge variant="outline">{p.paymentMethod}</Badge></TableCell>
+                  <TableCell className="text-muted-foreground">{fmtDate(p.createdAt)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button size="sm" onClick={() => confirm(p.donationId)} disabled={isConfirming}>
+                      <Check className="h-4 w-4 mr-1" />Confirmar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      )}
     </Card>
   );
 };

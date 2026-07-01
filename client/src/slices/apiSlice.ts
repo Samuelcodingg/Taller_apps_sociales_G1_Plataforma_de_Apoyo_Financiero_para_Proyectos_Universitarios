@@ -27,6 +27,7 @@ export const apiSlice = createApi({
     "Notifications",
     "AdminUsers",
     "AdminCampaigns",
+    "AdminPayments",
   ],
   endpoints: (builder) => ({
     registerCreator: builder.mutation<
@@ -389,6 +390,34 @@ export const apiSlice = createApi({
       query: (id) => ({ url: `/api/admin/campaigns/${id}`, method: "DELETE" }),
       invalidatesTags: ["AdminCampaigns"],
     }),
+
+    // --- Admin: donaciones/yapeos pendientes ---
+    adminPendingDonations: builder.query<
+      Array<{
+        donationId: string;
+        campaignId: string;
+        campaignTitle: string;
+        creatorName: string;
+        donorName: string;
+        amount: number;
+        paymentMethod: string;
+        isAnonymous: boolean;
+        message: string | null;
+        createdAt: string;
+      }>,
+      void
+    >({
+      query: () => ({ url: "/api/admin/pending-donations", method: "GET" }),
+      providesTags: ["AdminPayments"],
+    }),
+
+    adminConfirmDonation: builder.mutation<{ ok: boolean }, string>({
+      query: (donationId) => ({
+        url: `/api/admin/donations/${donationId}/confirm`,
+        method: "POST",
+      }),
+      invalidatesTags: ["AdminPayments", "AdminCampaigns"],
+    }),
   }),
 });
 
@@ -483,4 +512,6 @@ export const {
   useAdminCampaignDetailQuery,
   useAdminUpdateCampaignMutation,
   useAdminDeleteCampaignMutation,
+  useAdminPendingDonationsQuery,
+  useAdminConfirmDonationMutation,
 } = apiSlice;

@@ -80,3 +80,17 @@ export interface UpdateCampaignData {
 	status?: string;
 	goalAmount?: number;
 }
+
+// ---------- Pagos / donaciones pendientes ----------
+export interface AdminPendingDonationDTO {
+	donationId: string;
+	campaignId: string;
+	campaignTitle: string;
+	creatorName: string;
+	donorName: string;
+	amount: number;
+	paymentMethod: string;
+	isAnonymous: boolean;
+	message: string | null;
+	createdAt: string;
+}

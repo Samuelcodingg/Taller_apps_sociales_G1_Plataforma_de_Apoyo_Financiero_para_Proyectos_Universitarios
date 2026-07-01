@@ -79,15 +79,20 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {pending.length > 0 && (
-          <Card className="p-5 space-y-3 border-amber-400/50">
-            <h2 className="font-semibold flex items-center gap-2">
-              Yapeos por confirmar
+        <Card className="p-5 space-y-3 border-amber-400/50">
+          <h2 className="font-semibold flex items-center gap-2">
+            Yapeos por confirmar
+            {pending.length > 0 && (
               <Badge className="bg-amber-500 text-white hover:bg-amber-500">{pending.length}</Badge>
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Cuando veas el abono en tu app de Yape, confirma la donación para sumarla al progreso de tu campaña.
-            </p>
+            )}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Cuando veas el abono en tu app de Yape, confirma la donación para sumarla al progreso de tu campaña.
+            Para recibir donaciones por Yape, sube tu QR en <Link to="/profile" className="text-primary">Mi perfil</Link>.
+          </p>
+          {pending.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">No tienes yapeos pendientes por confirmar.</p>
+          ) : (
             <div className="space-y-2">
               {pending.map((p) => (
                 <div key={p.donationId} className="flex items-center justify-between gap-3 rounded-lg border p-3">
@@ -104,8 +109,8 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
-          </Card>
-        )}
+          )}
+        </Card>
 
         <Card className="p-5 space-y-4">
           <h2 className="font-semibold">Mis campañas</h2>
