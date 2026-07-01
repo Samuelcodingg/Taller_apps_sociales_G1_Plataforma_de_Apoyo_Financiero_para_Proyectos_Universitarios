@@ -74,6 +74,14 @@ export interface InteractionResultDTO {
 }
 
 // --- Salida ---
+export interface InterestedDTO {
+	accountId: string | null;
+	name: string;
+	email: string | null;
+	university: string | null;
+	createdAt: string;
+}
+
 export interface CreatorDTO {
 	id: string | null;
 	name: string; // "Nombres Apellidos"

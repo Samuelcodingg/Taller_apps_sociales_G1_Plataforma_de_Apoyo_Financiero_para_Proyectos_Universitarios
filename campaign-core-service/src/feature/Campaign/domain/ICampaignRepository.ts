@@ -6,6 +6,7 @@ import {
 	CreateCampaignData,
 	InteractionResultDTO,
 	InteractionType,
+	InterestedDTO,
 } from '../application/dtos';
 
 export interface EditCampaignFields {
@@ -33,6 +34,9 @@ export interface ICampaignRepository {
 
 	// Devuelve el id del creador de la campaña, o null si no existe.
 	getOwnerId(id: string): Promise<string | null>;
+
+	// Cuentas que marcaron INTEREST ("Conectar") en la campaña, con su contacto.
+	listInterested(campaignId: string): Promise<InterestedDTO[]>;
 
 	// Edita los campos indicados y devuelve el detalle actualizado.
 	update(id: string, fields: EditCampaignFields): Promise<CampaignDetailDTO>;

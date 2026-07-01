@@ -12,6 +12,7 @@ import { AddUpdate } from './application/AddUpdate';
 import { AddComment } from './application/AddComment';
 import { ToggleInteraction } from './application/ToggleInteraction';
 import { ListMyInteractions } from './application/ListMyInteractions';
+import { ListInterested } from './application/ListInterested';
 import { createAuthMiddleware, createOptionalAuthMiddleware } from '../../shared/http/authMiddleware';
 import { JwtVerifier } from '../../shared/security/JwtVerifier';
 
@@ -31,6 +32,7 @@ const addUpdate = new AddUpdate(campaignRepository, mediaStorage);
 const addComment = new AddComment(campaignRepository);
 const toggleInteraction = new ToggleInteraction(campaignRepository);
 const listMyInteractions = new ListMyInteractions(campaignRepository);
+const listInterested = new ListInterested(campaignRepository);
 
 // 3. Adaptador Driving (entrypoint).
 const controller = new HttpController(
@@ -42,6 +44,7 @@ const controller = new HttpController(
 	addComment,
 	toggleInteraction,
 	listMyInteractions,
+	listInterested,
 );
 
 // 4. Middlewares de autenticacion.
@@ -64,5 +67,7 @@ router.post('/:id/updates', authenticate, upload.any(), (req, res) => controller
 // Comentarios/respuestas e interacciones (likes/shares) para usuarios autenticados.
 router.post('/:id/comments', authenticate, (req, res) => controller.createComment(req, res));
 router.post('/:id/interactions', authenticate, (req, res) => controller.interact(req, res));
+// Interesados ("Conectar") de una campaña — solo el creador dueño.
+router.get('/:id/interested', authenticate, (req, res) => controller.interested(req, res));
 
 export { router as campaignRouter };

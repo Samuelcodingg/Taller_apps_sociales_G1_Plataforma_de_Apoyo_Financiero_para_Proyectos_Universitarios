@@ -180,6 +180,24 @@ export const apiSlice = createApi({
       invalidatesTags: ["Campaigns"],
     }),
 
+    // Interesados ("Conectar") en una campaña — solo visible para el creador dueño.
+    campaignInterested: builder.query<
+      Array<{
+        accountId: string | null;
+        name: string;
+        email: string | null;
+        university: string | null;
+        createdAt: string;
+      }>,
+      string
+    >({
+      query: (id) => ({
+        url: `${BASE_CAMPAIGN_URL}/api/campaigns/${id}/interested`,
+        method: "GET",
+      }),
+      providesTags: ["Campaigns"],
+    }),
+
     // Campañas con las que el usuario interactua (BOOKMARK/FOLLOW/INTEREST/LIKE).
     myInteractions: builder.query<CampaignSummary[], string>({
       query: (type) => ({
@@ -492,6 +510,7 @@ export const {
   useAddCampaignUpdateMutation,
   useAddCampaignCommentMutation,
   useInteractCampaignMutation,
+  useCampaignInterestedQuery,
   useDonateMutation,
   useConfirmPaymentMutation,
   useIncomingPendingQuery,

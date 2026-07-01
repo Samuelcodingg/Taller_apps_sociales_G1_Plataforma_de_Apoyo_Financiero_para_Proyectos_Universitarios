@@ -23,6 +23,7 @@ import {
   useAddCampaignUpdateMutation,
   useAddCampaignCommentMutation,
   useInteractCampaignMutation,
+  useCampaignInterestedQuery,
   useDonateMutation,
   useConfirmPaymentMutation,
   useRecordViewMutation,
@@ -49,6 +50,12 @@ const Campana = () => {
   const [donateMut, { isLoading: isDonating }] = useDonateMutation();
   const [confirmPayment] = useConfirmPaymentMutation();
   const [recordView] = useRecordViewMutation();
+
+  // Interesados en conectar (solo el creador dueño puede verlos).
+  const ownerView = !!user && !!c && user.id === c.creator.id;
+  const { data: interested = [] } = useCampaignInterestedQuery(id, {
+    skip: !id || !ownerView,
+  });
 
   const [amount, setAmount] = useState("50");
   const [anon, setAnon] = useState(false);
@@ -597,6 +604,33 @@ const Campana = () => {
               ))}
             </ul>
           </Card>
+
+          {/* Interesados en conectar — solo el dueño de la campaña. */}
+          {ownerView && (
+            <Card className="p-5">
+              <h3 className="font-semibold mb-1 text-sm flex items-center gap-2">
+                <Handshake className="h-4 w-4" /> Interesados en conectar ({interested.length})
+              </h3>
+              <p className="text-xs text-muted-foreground mb-3">
+                Personas que pulsaron "Conectar" para colaborar/aliarse contigo. Puedes contactarlas.
+              </p>
+              {interested.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Aún nadie ha pulsado "Conectar".</p>
+              ) : (
+                <div className="space-y-2">
+                  {interested.map((p, i) => (
+                    <div key={p.accountId ?? i} className="rounded-lg border p-2 text-sm">
+                      <div className="font-medium">{p.name}</div>
+                      {p.university && <div className="text-xs text-muted-foreground">{p.university}</div>}
+                      {p.email && (
+                        <a href={`mailto:${p.email}`} className="text-xs text-primary break-all">{p.email}</a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
 
           <Link to="/explorar" className="block text-center text-sm text-muted-foreground hover:text-primary">← Volver al catálogo</Link>
         </aside>

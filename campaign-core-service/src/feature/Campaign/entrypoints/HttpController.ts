@@ -8,6 +8,7 @@ import { AddUpdate } from '../application/AddUpdate';
 import { AddComment } from '../application/AddComment';
 import { ToggleInteraction } from '../application/ToggleInteraction';
 import { ListMyInteractions } from '../application/ListMyInteractions';
+import { ListInterested } from '../application/ListInterested';
 import { InteractionType } from '../application/dtos';
 
 export class HttpController {
@@ -20,7 +21,22 @@ export class HttpController {
 		private readonly addComment: AddComment,
 		private readonly toggleInteraction: ToggleInteraction,
 		private readonly listMyInteractions: ListMyInteractions,
+		private readonly listInterested: ListInterested,
 	) {}
+
+	// Interesados ("Conectar") en una campaña — solo el creador dueño.
+	async interested(req: Request, res: Response): Promise<Response> {
+		try {
+			const requesterId = req.auth?.userId;
+			if (!requesterId) {
+				throw new UnauthorizedError('No se pudo identificar al usuario autenticado.');
+			}
+			const list = await this.listInterested.execute(String(req.params.id), requesterId);
+			return res.status(200).json(list);
+		} catch (error) {
+			return this.handleError(res, error);
+		}
+	}
 
 	async myInteractions(req: Request, res: Response): Promise<Response> {
 		try {

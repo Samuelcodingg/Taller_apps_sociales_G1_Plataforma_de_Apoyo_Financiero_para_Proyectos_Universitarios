@@ -200,6 +200,29 @@ export class CampaignRepository implements ICampaignRepository {
 		return row.creatorId ?? '';
 	}
 
+	async listInterested(campaignId: string) {
+		const rows = await this.prisma.campaign_interaction.findMany({
+			where: { id_campaign: campaignId, type: 'INTEREST' },
+			include: { account: { include: { profile: true, verification: true } } },
+			orderBy: { created_at: 'desc' },
+		});
+		return rows.map((r) => {
+			const prof = r.account?.profile?.[0];
+			const withData = (r.account?.verification ?? [])
+				.filter((v) => v.extracted_data)
+				.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0];
+			const data = (withData?.extracted_data ?? {}) as Record<string, unknown>;
+			const uni = data.university ?? data.universidad;
+			return {
+				accountId: r.id_account,
+				name: this.personName(prof) ?? 'Usuario',
+				email: r.account?.email ?? null,
+				university: typeof uni === 'string' && uni.trim() ? uni : null,
+				createdAt: r.created_at.toISOString(),
+			};
+		});
+	}
+
 	async update(id: string, fields: EditCampaignFields): Promise<CampaignDetailDTO> {
 		await this.prisma.campaign.update({
 			where: { id },
