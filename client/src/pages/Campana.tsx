@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Heart, Share2, Users, Calendar, ShieldCheck, MessageCircle, Mail, CreditCard, EyeOff, CheckCircle2, Loader2, Pencil, Megaphone, Send, Bookmark, Bell, Handshake } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -61,8 +62,10 @@ const Campana = () => {
   const [updateForm, setUpdateForm] = useState({ title: "", message: "" });
   const [updateImage, setUpdateImage] = useState<File | null>(null);
   const [updateOpen, setUpdateOpen] = useState(false);
-  // Comentario
+  // Comentario y respuestas
   const [comment, setComment] = useState("");
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   // Registra el clic/vista de la campaña (señal para el feed personalizado).
   useEffect(() => {
@@ -103,6 +106,12 @@ const Campana = () => {
   const goal = c.goalAmount;
   const pct = goal > 0 ? Math.min(100, Math.round((raised / goal) * 100)) : 0;
   const cover = safeImageUrl(c.media[0]?.url) ?? PLACEHOLDER_IMAGE;
+  // Comentarios organizados en hilos: raíz (sin parentId) + respuestas por padre.
+  const topComments = c.comments.filter((cm) => !cm.parentId);
+  const repliesByParent = c.comments.reduce<Record<string, typeof c.comments>>((acc, cm) => {
+    if (cm.parentId) (acc[cm.parentId] ??= []).push(cm);
+    return acc;
+  }, {});
   const daysLeft = Math.max(0, Math.ceil((+new Date(c.endDate) - Date.now()) / 86400000));
 
   const donate = async () => {
@@ -179,6 +188,17 @@ const Campana = () => {
     } catch (e) { toast.error(getErrorMessage(e)); }
   };
 
+  const sendReply = async (parentId: string) => {
+    if (!requireLogin()) return;
+    if (replyText.trim().length === 0) return;
+    try {
+      await addComment({ id: c.id, content: replyText, parentId }).unwrap();
+      setReplyText("");
+      setReplyTo(null);
+      toast.success("Respuesta publicada");
+    } catch (e) { toast.error(getErrorMessage(e)); }
+  };
+
   const has = (type: string) => c.myInteractions?.includes(type);
 
   const react = async (
@@ -198,8 +218,30 @@ const Campana = () => {
   const connect = () => react("INTEREST", { on: "Interés registrado: el creador podrá contactarte", off: "Interés retirado" });
 
   const share = async (network: string) => {
-    if (user) { try { await interact({ id: c.id, type: "SHARE" }).unwrap(); } catch { /* noop */ } }
-    toast.success(`Enlace copiado para ${network} (con tracking UTM)`);
+    // Enlace con tracking UTM hacia la campaña.
+    const url = `${window.location.origin}/campana/${c.id}?utm_source=${network.toLowerCase()}&utm_medium=share`;
+    const text = `Apoya "${c.title}" en Sembradora`;
+    const targets: Record<string, string> = {
+      WhatsApp: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`,
+      Facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      LinkedIn: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+    };
+    // Registra la compartición (alimenta el índice de viralidad de Tendencias).
+    if (user) {
+      try {
+        await interact({ id: c.id, type: "SHARE" }).unwrap();
+      } catch {
+        /* noop: no bloquear el compartir si falla el registro */
+      }
+    }
+    // Copia el enlace y abre el diálogo de la red social.
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      /* algunos navegadores bloquean clipboard sin gesto directo */
+    }
+    window.open(targets[network] ?? url, "_blank", "noopener,noreferrer");
+    toast.success(`Enlace copiado y abriendo ${network}`);
   };
 
   return (
@@ -305,8 +347,8 @@ const Campana = () => {
                 <Textarea placeholder="Deja un mensaje de aliento..." rows={2} value={comment} onChange={(e) => setComment(e.target.value)} />
                 <Button onClick={sendComment} disabled={isCommenting}><MessageCircle className="h-4 w-4" /></Button>
               </div>
-              {c.comments.length === 0 && <p className="text-sm text-muted-foreground">Sé el primero en comentar.</p>}
-              {c.comments.map((cm) => (
+              {topComments.length === 0 && <p className="text-sm text-muted-foreground">Sé el primero en comentar.</p>}
+              {topComments.map((cm) => (
                 <Card key={cm.id} className="p-4">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8"><AvatarFallback className="text-xs">{cm.author[0]}</AvatarFallback></Avatar>
@@ -316,6 +358,49 @@ const Campana = () => {
                     </div>
                   </div>
                   <p className="text-sm mt-2 ml-10">{cm.content}</p>
+
+                  <div className="ml-10 mt-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground"
+                      onClick={() => {
+                        setReplyTo(replyTo === cm.id ? null : cm.id);
+                        setReplyText("");
+                      }}
+                    >
+                      Responder
+                    </Button>
+                  </div>
+
+                  {/* Respuestas al comentario */}
+                  {(repliesByParent[cm.id] ?? []).map((r) => (
+                    <div key={r.id} className="ml-12 mt-2 border-l pl-3">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6"><AvatarFallback className="text-[10px]">{r.author[0]}</AvatarFallback></Avatar>
+                        <div className="text-xs">
+                          <span className="font-medium">{r.author}</span>
+                          <span className="text-muted-foreground"> · {new Date(r.createdAt).toLocaleDateString("es-PE")}</span>
+                        </div>
+                      </div>
+                      <p className="text-sm mt-1 ml-8">{r.content}</p>
+                    </div>
+                  ))}
+
+                  {/* Caja para responder */}
+                  {replyTo === cm.id && (
+                    <div className="ml-12 mt-2 flex gap-2">
+                      <Textarea
+                        placeholder={`Responder a ${cm.author}...`}
+                        rows={2}
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                      />
+                      <Button size="sm" onClick={() => sendReply(cm.id)} disabled={isCommenting}>
+                        Enviar
+                      </Button>
+                    </div>
+                  )}
                 </Card>
               ))}
             </TabsContent>
@@ -387,21 +472,43 @@ const Campana = () => {
               </DialogContent>
             </Dialog>
 
-            {/* Reacciones y favoritos */}
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant={has("LIKE") ? "default" : "outline"} size="sm" onClick={like}>
-                <Heart className="h-3.5 w-3.5 mr-1" />{c.likes} Me gusta
-              </Button>
-              <Button variant={has("BOOKMARK") ? "default" : "outline"} size="sm" onClick={bookmark}>
-                <Bookmark className="h-3.5 w-3.5 mr-1" />Guardar
-              </Button>
-              <Button variant={has("FOLLOW") ? "default" : "outline"} size="sm" onClick={follow}>
-                <Bell className="h-3.5 w-3.5 mr-1" />{has("FOLLOW") ? "Siguiendo" : "Seguir"}
-              </Button>
-              <Button variant={has("INTEREST") ? "default" : "outline"} size="sm" onClick={connect}>
-                <Handshake className="h-3.5 w-3.5 mr-1" />{has("INTEREST") ? "Interesado" : "Conectar"}
-              </Button>
-            </div>
+            {/* Reacciones y favoritos (cada botón con su propósito) */}
+            <TooltipProvider delayDuration={200}>
+              <div className="grid grid-cols-2 gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant={has("LIKE") ? "default" : "outline"} size="sm" onClick={like}>
+                      <Heart className="h-3.5 w-3.5 mr-1" />{c.likes} Me gusta
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Muestra tu apoyo. Los "me gusta" elevan la campaña en el ranking.</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant={has("BOOKMARK") ? "default" : "outline"} size="sm" onClick={bookmark}>
+                      <Bookmark className="h-3.5 w-3.5 mr-1" />{has("BOOKMARK") ? "Guardada" : "Guardar"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Guárdala en tus favoritos para volver a encontrarla fácilmente.</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant={has("FOLLOW") ? "default" : "outline"} size="sm" onClick={follow}>
+                      <Bell className="h-3.5 w-3.5 mr-1" />{has("FOLLOW") ? "Siguiendo" : "Seguir"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Recibe notificaciones cuando la campaña alcance sus hitos (25/50/75/100%).</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant={has("INTEREST") ? "default" : "outline"} size="sm" onClick={connect}>
+                      <Handshake className="h-3.5 w-3.5 mr-1" />{has("INTEREST") ? "Interesado" : "Conectar"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Expresa interés de colaborar/aliarte: el creador podrá contactarte.</TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
             <div className="flex gap-2">
               {["WhatsApp", "Facebook", "LinkedIn"].map((n) => (
                 <Button key={n} variant="outline" size="sm" className="flex-1" onClick={() => share(n)}><Share2 className="h-3 w-3 mr-1" />{n}</Button>
