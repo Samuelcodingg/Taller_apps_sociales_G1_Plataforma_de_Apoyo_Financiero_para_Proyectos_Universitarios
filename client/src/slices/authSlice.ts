@@ -21,6 +21,13 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.accessToken = null;
+      // Borra el refresh token persistido; si no, al refrescar la página el
+      // AuthInitializer lo leería y volvería a iniciar sesión.
+      try {
+        localStorage.removeItem("refreshToken");
+      } catch {
+        /* entornos sin localStorage */
+      }
     },
   },
 });
