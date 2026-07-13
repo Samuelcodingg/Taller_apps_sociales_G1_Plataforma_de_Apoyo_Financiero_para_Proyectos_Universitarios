@@ -83,15 +83,17 @@ export const validateMatricula = (rawText: string): MatriculaInfo => {
 		);
 	}
 
-	// 2. Fecha de matricula via web: debe existir y ser del anio 2026.
-	const dateMatch = text.match(/matricula via web\s*\|?\s*(\d{2})\/(\d{2})\/(\d{4})/);
+	// 2. Fecha de matricula: debe existir y ser del anio 2026. La modalidad
+	// ("Via Web", "Presencial", ...) no condiciona la elegibilidad: basta con
+	// estar matriculado, asi que aceptamos cualquiera.
+	const dateMatch = text.match(/matricula\s+[a-z ]*?\|?\s*(\d{2})\/(\d{2})\/(\d{4})/);
 	if (!dateMatch) {
-		throw new Error('No se encontro la fecha de "Matricula Via Web" en el documento.');
+		throw new Error('No se encontro la fecha de matricula en el documento.');
 	}
 	const enrollmentYear = Number(dateMatch[3]);
 	if (enrollmentYear !== REQUIRED_ENROLLMENT_YEAR) {
 		throw new Error(
-			`La fecha de matricula via web debe ser del anio ${REQUIRED_ENROLLMENT_YEAR}, pero es del ${enrollmentYear}.`,
+			`La fecha de matricula debe ser del anio ${REQUIRED_ENROLLMENT_YEAR}, pero es del ${enrollmentYear}.`,
 		);
 	}
 	const enrollmentDate = `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
