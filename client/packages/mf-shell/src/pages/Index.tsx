@@ -92,7 +92,7 @@ const Index = () => {
             </h2>
             <p className="text-sm text-muted-foreground">
               {personalized
-                ? "Personalizado según tu historial e intereses · ML"
+                ? "Personalizado con IA según tu historial e intereses"
                 : "Los proyectos más virales del momento"}
             </p>
           </div>

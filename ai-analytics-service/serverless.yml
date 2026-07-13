@@ -13,6 +13,8 @@ provider:
     DATABASE_URL: ${env:DATABASE_URL}
     GEMINI_API_KEY: ${env:GEMINI_API_KEY}
     LOG_LEVEL: ${env:LOG_LEVEL, 'INFO'}
+    FEED_TOP_N: ${env:FEED_TOP_N, '9'}
+    FEED_CANDIDATE_LIMIT: ${env:FEED_CANDIDATE_LIMIT, '60'}
   iam:
     role:
       statements:
@@ -48,3 +50,13 @@ functions:
           arn: arn:aws:sqs:us-east-2:676480496543:sembramos-identity-profile-service-verification-queue
           batchSize: 1
           functionResponseType: ReportBatchItemFailures
+
+  refreshFeed:
+    handler: src.feature.FeedRecommendation.infrastructure.handlers.scheduled_feed_handler.handler
+    description: Regenera el feed personalizado de los donantes rankeando campañas con Gemini
+    # El lote hace una llamada al LLM por donante; 60s no alcanzan.
+    timeout: 900
+    events:
+      - schedule:
+          rate: rate(6 hours)
+          description: Regeneración periódica del feed personalizado

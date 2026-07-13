@@ -2,6 +2,10 @@ import { CampaignSummaryDTO } from '../../Campaign/application/dtos';
 
 export interface ScoredCampaign extends CampaignSummaryDTO {
 	score: number; // afinidad (feed) o indice de viralidad (tendencias)
+	// Por que se recomienda esta campaña, redactado por el LLM. Solo viene en el
+	// feed personalizado, y solo cuando lo sirve ai-analytics-service: el
+	// fallback heuristico no sabe justificar sus recomendaciones.
+	reason?: string | null;
 }
 
 export interface IDiscoveryRepository {

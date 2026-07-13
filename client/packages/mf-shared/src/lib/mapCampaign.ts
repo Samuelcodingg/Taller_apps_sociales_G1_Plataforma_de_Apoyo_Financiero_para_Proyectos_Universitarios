@@ -37,4 +37,5 @@ export const mapSummaryToCampaign = (s: CampaignSummary): Campaign => ({
         : "borrador",
   creator: { name: s.creator.name, verified: s.creator.verified },
   trending: 0,
+  reason: s.reason ?? null,
 });

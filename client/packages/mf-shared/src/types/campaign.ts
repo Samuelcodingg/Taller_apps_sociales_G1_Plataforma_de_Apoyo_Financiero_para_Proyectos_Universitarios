@@ -13,6 +13,9 @@ export type Campaign = {
   status: "borrador" | "activa" | "finalizada";
   creator: { name: string; verified: boolean; avatar?: string };
   trending: number;
+  // Por que se le recomienda esta campaña al usuario. Solo llega en el feed
+  // personalizado, y solo cuando lo sirvio el LLM (el fallback no lo justifica).
+  reason?: string | null;
 };
 
 // --- Tipos que devuelve el Campaign Core Service ---
@@ -40,6 +43,7 @@ export type CampaignSummary = {
   categories: string[];
   creator: CreatorDTO;
   donorsCount: number;
+  reason?: string | null;
 };
 
 export type CampaignDetail = CampaignSummary & {

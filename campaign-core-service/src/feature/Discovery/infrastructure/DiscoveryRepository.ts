@@ -94,8 +94,53 @@ export class DiscoveryRepository implements IDiscoveryRepository {
 		return top.map((t) => t.summary);
 	}
 
-	// ---------- FEED PERSONALIZADO (basado en comportamiento) ----------
+	// ---------- FEED PERSONALIZADO ----------
+	// El feed lo produce ai-analytics-service: un lote periodico le pide a un LLM
+	// que rankee las campañas para cada donante y deja el resultado en
+	// user_recommendation. Aqui solo se lee.
+	//
+	// Si ese lote todavia no corrio para este donante (cuenta nueva, o el job
+	// fallo), se cae al scoring heuristico de siempre. Es peor feed, pero es un
+	// feed: nadie ve una pantalla vacia.
 	async getPersonalizedFeed(accountId: string, limit: number): Promise<ScoredCampaign[]> {
+		const recommended = await this.readRecommendations(accountId, limit);
+		if (recommended.length > 0) return recommended;
+
+		console.info(
+			`[discovery] sin recomendaciones del LLM para la cuenta ${accountId}; ` +
+				'se usa el scoring heuristico',
+		);
+		return this.heuristicFeed(accountId, limit);
+	}
+
+	// Lee el feed que dejo el LLM, descartando lo que se quedo obsoleto entre
+	// que corrio el lote y ahora: campañas cerradas y campañas que el donante ya
+	// apoyo desde entonces.
+	private async readRecommendations(
+		accountId: string,
+		limit: number,
+	): Promise<ScoredCampaign[]> {
+		const [rows, donatedIds] = await Promise.all([
+			this.prisma.user_recommendation.findMany({
+				where: { id_account: accountId, campaign: { status: 'ACTIVE' } },
+				include: { campaign: summaryInclude },
+				orderBy: { score: 'desc' },
+			}),
+			this.getDonatedCampaignIds(accountId),
+		]);
+
+		return rows
+			.filter((row) => row.campaign && !donatedIds.has(row.campaign.id))
+			.slice(0, limit)
+			.map((row) => ({
+				...this.buildSummary(row.campaign as SummaryRow, Number(row.score)),
+				reason: row.reason,
+			}));
+	}
+
+	// Fallback: scoring por reglas (afinidad de categorias + misma universidad +
+	// popularidad). No persiste nada: user_recommendation es de ai-analytics-service.
+	private async heuristicFeed(accountId: string, limit: number): Promise<ScoredCampaign[]> {
 		const [categoryWeights, donatedIds, university] = await Promise.all([
 			this.getCategoryWeights(accountId),
 			this.getDonatedCampaignIds(accountId),
@@ -125,14 +170,7 @@ export class DiscoveryRepository implements IDiscoveryRepository {
 			hasSignals ? b.score - a.score : b.donorsCount - a.donorsCount,
 		);
 
-		const top = scored.slice(0, limit);
-
-		// Persiste las recomendaciones en user_recommendation.
-		this.persistRecommendations(accountId, top).catch((e) =>
-			console.error('[discovery] no se pudo guardar user_recommendation:', e.message),
-		);
-
-		return top;
+		return scored.slice(0, limit);
 	}
 
 	// ---------- señales del usuario ----------
@@ -221,26 +259,6 @@ export class DiscoveryRepository implements IDiscoveryRepository {
 				donations_last_24h: i.donations24h,
 				amount_last_24h: i.amount24h,
 				trend_score: Math.min(999.99, Number(i.summary.score.toFixed(2))),
-			})),
-		});
-	}
-
-	private async persistRecommendations(
-		accountId: string,
-		items: ScoredCampaign[],
-	): Promise<void> {
-		await this.prisma.user_recommendation.deleteMany({ where: { id_account: accountId } });
-		if (items.length === 0) return;
-		const max = Math.max(...items.map((i) => i.score), 1);
-		const now = new Date();
-		await this.prisma.user_recommendation.createMany({
-			data: items.map((i) => ({
-				id_recommendation: randomUUID(),
-				id_account: accountId,
-				id_campaign: i.id,
-				// score normalizado a 0..0.9999 (columna Decimal(5,4)).
-				score: Number(Math.min(0.9999, i.score / max).toFixed(4)),
-				created_at: now,
 			})),
 		});
 	}

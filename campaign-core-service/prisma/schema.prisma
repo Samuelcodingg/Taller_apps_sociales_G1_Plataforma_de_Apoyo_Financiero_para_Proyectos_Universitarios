@@ -429,6 +429,9 @@ model user_recommendation {
   id_account        String?   @db.Char(36)
   id_campaign       String?   @db.Char(36)
   score             Decimal   @db.Decimal(5, 4)
+  // Frase que explica al donante por que se le recomienda esta campaña. La
+  // genera el LLM en ai-analytics-service; es null si no hubo justificacion.
+  reason            String?   @db.Text
   created_at        DateTime  @db.Timestamp(0)
   account           Account?  @relation(fields: [id_account], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_recommendation_ibfk_1")
   campaign          Campaign? @relation(fields: [id_campaign], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_recommendation_ibfk_2")

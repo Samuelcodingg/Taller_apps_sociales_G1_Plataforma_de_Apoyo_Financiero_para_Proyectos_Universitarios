@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Users, Target } from "lucide-react";
+import { Users, Target, Sparkles } from "lucide-react";
 import type { Campaign } from "@/types/campaign";
 
 export function CampaignCard({ c }: { c: Campaign }) {
@@ -45,6 +45,12 @@ export function CampaignCard({ c }: { c: Campaign }) {
             <span className="flex items-center gap-1"><Users className="h-3 w-3" />{c.donors} donantes</span>
             <span className="flex items-center gap-1"><Target className="h-3 w-3" />Meta {new Date(c.deadline).toLocaleDateString("es-PE", { month: "short", day: "numeric" })}</span>
           </div>
+          {c.reason && (
+            <p className="flex items-start gap-1.5 text-xs text-muted-foreground italic pt-1">
+              <Sparkles className="h-3 w-3 mt-0.5 shrink-0 text-accent" />
+              <span className="line-clamp-2">{c.reason}</span>
+            </p>
+          )}
         </div>
       </Card>
     </Link>
