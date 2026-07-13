@@ -183,11 +183,26 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_PRD }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # Salvaguarda: la plantilla es la unica fuente de verdad del dominio, asi
+      # que un deploy con estas variables vacias DEJARIA A LA DISTRIBUCION SIN
+      # alternate domain names y creayni.com dejaria de resolver (CloudFront
+      # responde 403 a los Host que no conoce). Preferimos fallar aqui, antes
+      # de tocar nada. Deben ser "Variables" (no "Secrets"): el workflow las lee
+      # con vars.*, y un secret llegaria como cadena vacia.
+      - name: Check domain vars
+        shell: bash
+        run: |
+          if [ -z "${{ vars.CF_DOMAIN_NAMES }}" ] || [ -z "${{ vars.ACM_CERTIFICATE_ARN }}" ]; then
+            echo "::error::Faltan las Variables CF_DOMAIN_NAMES y/o ACM_CERTIFICATE_ARN."
+            echo "Settings > Secrets and variables > Actions > pestana 'Variables'."
+            echo "Sin ellas el deploy borraria el dominio de la distribucion. Abortado."
+            exit 1
+          fi
+          echo "Dominios: ${{ vars.CF_DOMAIN_NAMES }}"
+
       # Para servir el dominio propio, define en GitHub las variables:
       #   CF_DOMAIN_NAMES      -> "creayni.com,www.creayni.com"
       #   ACM_CERTIFICATE_ARN  -> certificado ACM emitido en us-east-1
-      # OJO: si estas variables faltan, la distribucion se queda SIN alternate
-      # domain names y tu dominio deja de resolver. No las borres.
       - name: Deploy CloudFormation stack
         shell: bash
         run: |
