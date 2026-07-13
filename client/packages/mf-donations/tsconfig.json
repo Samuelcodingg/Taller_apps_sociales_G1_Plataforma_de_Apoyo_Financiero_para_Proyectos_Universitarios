@@ -1,0 +1,20 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@/store/store": ["./src/state-remote.ts"],
+      "@/slices/apiSlice": ["./src/state-remote.ts"],
+      "@/slices/authSlice": ["./src/state-remote.ts"],
+      "@/services/baseQuery": ["./src/state-remote.ts"],
+      "@/components/*": ["../mf-shared/src/components/*"],
+      "@/hooks/*": ["../mf-shared/src/hooks/*"],
+      "@/lib/*": ["../mf-shared/src/lib/*"],
+      "@/schemas/*": ["../mf-shared/src/schemas/*"],
+      "@/types/*": ["../mf-shared/src/types/*"],
+      "@/routes/*": ["../mf-shared/src/routes/*"],
+      "@/*": ["./src/*"],
+      "mf_shared/state": ["../mf-shared/src/state/index.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

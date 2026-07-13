@@ -1,5 +1,11 @@
 name: Frontend CI/CD
 
+# Frontend de microfrontends (Module Federation). Cada MFE se construye y se
+# despliega de forma INDEPENDIENTE: un push que solo toca
+# client/packages/mf-auth/** despliega unicamente ese microfrontend a su bucket.
+# El shell no necesita reconstruirse cuando cambia un MFE, porque las URLs de
+# los remotes son rutas fijas del propio dominio (/mf/<nombre>/...).
+
 on:
   push:
     branches:
@@ -15,6 +21,11 @@ on:
       - 'client/**'
       - '.github/workflows/frontend.yml'
   workflow_dispatch:
+    inputs:
+      deploy_all:
+        description: 'Desplegar todos los microfrontends (ignora los cambios detectados)'
+        type: boolean
+        default: true
 
 permissions:
   id-token: write
@@ -24,6 +35,68 @@ env:
   AWS_REGION: us-east-2
 
 jobs:
+  # Que microfrontends toco este push. mf-shared es codigo fuente que TODOS los
+  # MFEs empaquetan en su bundle (design system, tipos, helpers), asi que si
+  # cambia hay que reconstruirlos todos; igual con los archivos raiz del
+  # monorepo (mf.config.ts, package.json, infra, este workflow).
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.plan.outputs.packages }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            global:
+              - 'client/package.json'
+              - 'client/package-lock.json'
+              - 'client/mf.config.ts'
+              - 'client/packages/tsconfig.base.json'
+              - 'client/infra/**'
+              - '.github/workflows/frontend.yml'
+            shared:
+              - 'client/packages/mf-shared/**'
+            shell:
+              - 'client/packages/mf-shell/**'
+            auth:
+              - 'client/packages/mf-auth/**'
+            campaigns:
+              - 'client/packages/mf-campaigns/**'
+            donations:
+              - 'client/packages/mf-donations/**'
+            admin:
+              - 'client/packages/mf-admin/**'
+
+      - name: Plan deploy matrix
+        id: plan
+        shell: bash
+        run: |
+          ALL='["shell","shared","auth","campaigns","donations","admin"]'
+
+          # Un cambio en mf-shared o en la raiz del monorepo afecta a todos.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
+            || [ "${{ steps.filter.outputs.global }}" = "true" ] \
+            || [ "${{ steps.filter.outputs.shared }}" = "true" ]; then
+            PACKAGES="$ALL"
+          else
+            PACKAGES=$(jq -cn --argjson p '[
+              {"name":"shell","changed":${{ steps.filter.outputs.shell }}},
+              {"name":"auth","changed":${{ steps.filter.outputs.auth }}},
+              {"name":"campaigns","changed":${{ steps.filter.outputs.campaigns }}},
+              {"name":"donations","changed":${{ steps.filter.outputs.donations }}},
+              {"name":"admin","changed":${{ steps.filter.outputs.admin }}}
+            ]' '$p | map(select(.changed)) | map(.name)')
+          fi
+
+          echo "packages=${PACKAGES}" >> "$GITHUB_OUTPUT"
+          echo "A desplegar: ${PACKAGES}"
+
   ci:
     name: Build & Test
     runs-on: ubuntu-latest
@@ -46,9 +119,10 @@ jobs:
         working-directory: ./client
         run: npm test --if-present
 
+      # Se construye todo el monorepo: valida que ningun MFE quede roto.
       - name: Build
         working-directory: ./client
-        run: npm run build --if-present
+        run: npm run build
 
   resolve-deploy-env:
     name: Resolve Deploy Environment
@@ -80,12 +154,82 @@ jobs:
           echo "target_env=${TARGET_ENV}" >> "$GITHUB_OUTPUT"
           echo "stage=${STAGE}" >> "$GITHUB_OUTPUT"
 
-  deploy:
-    name: Deploy to S3 + CloudFront
+  # Buckets (uno por microfrontend) + la unica distribucion CloudFront que los
+  # compone. Idempotente: se ejecuta en cada deploy y no cambia nada si no hay
+  # diferencias en la plantilla.
+  infra:
+    name: Provision infra (S3 + CloudFront)
     runs-on: ubuntu-latest
     needs: [ci, resolve-deploy-env]
     if: needs.resolve-deploy-env.outputs.should_deploy == 'true'
     environment: ${{ needs.resolve-deploy-env.outputs.target_env }}
+    outputs:
+      dist_id: ${{ steps.stack.outputs.dist_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (QA)
+        if: needs.resolve-deploy-env.outputs.target_env == 'qa'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_QAS }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Configure AWS credentials (PRD)
+        if: needs.resolve-deploy-env.outputs.target_env == 'prd'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_PRD }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Para servir el dominio propio, define en GitHub las variables:
+      #   CF_DOMAIN_NAMES      -> "creayni.com,www.creayni.com"
+      #   ACM_CERTIFICATE_ARN  -> certificado ACM emitido en us-east-1
+      # OJO: si estas variables faltan, la distribucion se queda SIN alternate
+      # domain names y tu dominio deja de resolver. No las borres.
+      - name: Deploy CloudFormation stack
+        shell: bash
+        run: |
+          aws cloudformation deploy \
+            --template-file client/infra/cloudfront-s3.yml \
+            --stack-name "sembramos-client-${{ needs.resolve-deploy-env.outputs.stage }}" \
+            --parameter-overrides \
+              Stage=${{ needs.resolve-deploy-env.outputs.stage }} \
+              DomainNames="${{ vars.CF_DOMAIN_NAMES }}" \
+              CertificateArn="${{ vars.ACM_CERTIFICATE_ARN }}" \
+              PriceClass="${{ vars.CF_PRICE_CLASS || 'PriceClass_All' }}" \
+            --capabilities CAPABILITY_IAM \
+            --region "$AWS_REGION"
+
+      - name: Read stack outputs
+        id: stack
+        shell: bash
+        run: |
+          STACK="sembramos-client-${{ needs.resolve-deploy-env.outputs.stage }}"
+          DIST_ID=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$AWS_REGION" \
+            --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue" --output text)
+          URL=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$AWS_REGION" \
+            --query "Stacks[0].Outputs[?OutputKey=='SiteUrl'].OutputValue" --output text)
+          CF_DOMAIN=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$AWS_REGION" \
+            --query "Stacks[0].Outputs[?OutputKey=='DistributionDomainName'].OutputValue" --output text)
+          echo "dist_id=${DIST_ID}" >> "$GITHUB_OUTPUT"
+          echo "Frontend URL: ${URL}"
+          echo "Apunta tu DNS (CNAME/ALIAS) a: ${CF_DOMAIN}"
+
+  # Un job por microfrontend: construye y sube SOLO ese paquete a SU bucket.
+  deploy:
+    name: Deploy mf-${{ matrix.package }}
+    runs-on: ubuntu-latest
+    needs: [changes, resolve-deploy-env, infra]
+    if: >-
+      needs.resolve-deploy-env.outputs.should_deploy == 'true' &&
+      needs.changes.outputs.packages != '[]'
+    environment: ${{ needs.resolve-deploy-env.outputs.target_env }}
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.changes.outputs.packages) }}
 
     steps:
       - name: Checkout
@@ -116,60 +260,59 @@ jobs:
         working-directory: ./client
         run: npm ci
 
-      # Las variables VITE_* se incrustan en build-time. Defínelas como
-      # "Variables" del repo/entorno en GitHub apuntando a las URLs reales de
-      # cada microservicio (API Gateway). Si faltan, el build usa los defaults
-      # de src/lib/constants.ts.
-      - name: Build
+      # Las VITE_* de los microservicios se incrustan en build-time. Las
+      # VITE_MF_*_URL le dicen al shell donde pedir cada remoteEntry.js: rutas
+      # del propio dominio, por eso no hay CORS entre microfrontends.
+      - name: Build mf-${{ matrix.package }}
         working-directory: ./client
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_CAMPAIGN_API_URL: ${{ vars.VITE_CAMPAIGN_API_URL }}
           VITE_FUNDING_API_URL: ${{ vars.VITE_FUNDING_API_URL }}
-        run: npm run build
+          VITE_MF_SHARED_URL: /mf/shared/assets/remoteEntry.js
+          VITE_MF_AUTH_URL: /mf/auth/assets/remoteEntry.js
+          VITE_MF_CAMPAIGNS_URL: /mf/campaigns/assets/remoteEntry.js
+          VITE_MF_DONATIONS_URL: /mf/donations/assets/remoteEntry.js
+          VITE_MF_ADMIN_URL: /mf/admin/assets/remoteEntry.js
+        run: npm -w mf-${{ matrix.package }} run build
 
-      # Provisiona/actualiza el bucket S3 + CloudFront (idempotente). La primera
-      # ejecucion crea la distribucion (puede tardar varios minutos).
-      - name: Provision infra (S3 + CloudFront)
+      # El shell vive en la raiz del sitio; cada MFE, bajo mf/<nombre>/ dentro
+      # de SU bucket (CloudFront reenvia la URI completa al origen, asi que la
+      # clave en S3 debe coincidir con la ruta publica).
+      #
+      # Cache: los assets llevan hash en el nombre => immutable. index.html y
+      # los remoteEntry.js NO llevan hash (son el manifiesto de cada MFE) =>
+      # no-cache, para que un deploy se vea de inmediato.
+      - name: Sync mf-${{ matrix.package }} to S3
         shell: bash
         run: |
-          aws cloudformation deploy \
-            --template-file client/infra/cloudfront-s3.yml \
-            --stack-name "sembramos-client-${{ needs.resolve-deploy-env.outputs.stage }}" \
-            --parameter-overrides Stage=${{ needs.resolve-deploy-env.outputs.stage }} \
-            --capabilities CAPABILITY_IAM \
-            --region "$AWS_REGION"
+          MF="${{ matrix.package }}"
+          STAGE="${{ needs.resolve-deploy-env.outputs.stage }}"
+          DIST="client/packages/mf-${MF}/dist"
+          IMMUTABLE="public,max-age=31536000,immutable"
+          NO_CACHE="no-cache,no-store,must-revalidate"
 
-      - name: Read stack outputs
-        id: stack
-        shell: bash
-        run: |
-          STACK="sembramos-client-${{ needs.resolve-deploy-env.outputs.stage }}"
-          BUCKET=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$AWS_REGION" \
-            --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" --output text)
-          DIST_ID=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$AWS_REGION" \
-            --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue" --output text)
-          DOMAIN=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$AWS_REGION" \
-            --query "Stacks[0].Outputs[?OutputKey=='DistributionDomainName'].OutputValue" --output text)
-          echo "bucket=${BUCKET}" >> "$GITHUB_OUTPUT"
-          echo "dist_id=${DIST_ID}" >> "$GITHUB_OUTPUT"
-          echo "Frontend URL: https://${DOMAIN}"
-
-      # Sube los estaticos. Los assets con hash se cachean fuerte; index.html no
-      # se cachea para que cada deploy se vea de inmediato.
-      - name: Sync to S3
-        shell: bash
-        run: |
-          BUCKET="${{ steps.stack.outputs.bucket }}"
-          aws s3 sync client/dist "s3://${BUCKET}" --delete \
-            --exclude index.html \
-            --cache-control "public,max-age=31536000,immutable"
-          aws s3 cp client/dist/index.html "s3://${BUCKET}/index.html" \
-            --cache-control "no-cache,no-store,must-revalidate"
+          if [ "$MF" = "shell" ]; then
+            BUCKET="sembramos-client-${STAGE}"
+            aws s3 sync "$DIST" "s3://${BUCKET}" --delete \
+              --exclude index.html \
+              --cache-control "$IMMUTABLE"
+            aws s3 cp "$DIST/index.html" "s3://${BUCKET}/index.html" \
+              --cache-control "$NO_CACHE"
+            echo "paths=/*" >> "$GITHUB_ENV"
+          else
+            BUCKET="sembramos-mf-${MF}-${STAGE}"
+            aws s3 sync "$DIST" "s3://${BUCKET}/mf/${MF}" --delete \
+              --exclude "assets/remoteEntry.js" \
+              --cache-control "$IMMUTABLE"
+            aws s3 cp "$DIST/assets/remoteEntry.js" "s3://${BUCKET}/mf/${MF}/assets/remoteEntry.js" \
+              --cache-control "$NO_CACHE"
+            echo "paths=/mf/${MF}/*" >> "$GITHUB_ENV"
+          fi
 
       - name: Invalidate CloudFront cache
         shell: bash
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id "${{ steps.stack.outputs.dist_id }}" \
-            --paths "/*"
+            --distribution-id "${{ needs.infra.outputs.dist_id }}" \
+            --paths "${{ env.paths }}"

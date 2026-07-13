@@ -1,9 +1,18 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  Hosting del frontend (SPA Vite/React) de Sembramos: bucket S3 privado servido
-  a traves de CloudFront con Origin Access Control (OAC). Incluye el fallback de
-  SPA (403/404 -> /index.html con 200) para que el routing de React Router
-  funcione al recargar rutas profundas.
+  Hosting del frontend de Sembramos (microfrontends con Module Federation).
+  Un bucket S3 PRIVADO por microfrontend, todos servidos por UNA sola
+  distribucion de CloudFront con Origin Access Control (OAC):
+
+    /            -> bucket del shell (host)
+    /mf/<nombre> -> bucket de cada microfrontend
+
+  Asi cada MFE se despliega de forma independiente (y su workflow solo tiene
+  permiso sobre su propio bucket), pero se sirven todos desde el mismo dominio:
+  sin CORS y con una sola distribucion que mantener.
+
+  Incluye el fallback de SPA (403/404 -> /index.html con 200) para que el
+  routing de React Router funcione al recargar rutas profundas.
 
 Parameters:
   Stage:
@@ -12,8 +21,38 @@ Parameters:
     AllowedValues: [qa, prod]
     Description: Entorno de despliegue (afecta solo a los nombres de los recursos).
 
+  DomainNames:
+    Type: String
+    Default: ''
+    Description: >
+      Dominios propios separados por coma (p. ej. "creayni.com,www.creayni.com").
+      Si se deja vacio, la distribucion solo responde en su dominio
+      *.cloudfront.net.
+
+  CertificateArn:
+    Type: String
+    Default: ''
+    Description: >
+      ARN del certificado ACM que cubre DomainNames. DEBE estar emitido en
+      us-east-1 (CloudFront solo acepta certificados de esa region). Obligatorio
+      si se definen DomainNames.
+
+  PriceClass:
+    Type: String
+    Default: PriceClass_All
+    AllowedValues: [PriceClass_100, PriceClass_200, PriceClass_All]
+    Description: >
+      Edge locations de CloudFront. PriceClass_All = todas (mejor latencia,
+      mas caro); PriceClass_100 = solo Norteamerica y Europa.
+
+Conditions:
+  # Solo se configura el dominio propio si llegan dominios Y certificado.
+  HasDomain: !And
+    - !Not [!Equals [!Ref DomainNames, '']]
+    - !Not [!Equals [!Ref CertificateArn, '']]
+
 Resources:
-  # Bucket PRIVADO: sin acceso publico directo. Solo CloudFront puede leerlo.
+  # --- Buckets: uno por microfrontend, todos privados (solo CloudFront lee) ---
   SiteBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -27,8 +66,73 @@ Resources:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
 
+  SharedBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'sembramos-mf-shared-${Stage}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  AuthBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'sembramos-mf-auth-${Stage}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  CampaignsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'sembramos-mf-campaigns-${Stage}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  DonationsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'sembramos-mf-donations-${Stage}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  AdminBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'sembramos-mf-admin-${Stage}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
   # Origin Access Control: identidad con la que CloudFront firma las peticiones
-  # al bucket (reemplaza al antiguo Origin Access Identity).
+  # a los buckets (reemplaza al antiguo Origin Access Identity).
   OriginAccessControl:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
@@ -45,20 +149,91 @@ Resources:
         Comment: !Sub 'Sembramos frontend (${Stage})'
         Enabled: true
         DefaultRootObject: index.html
-        PriceClass: PriceClass_100
+        PriceClass: !Ref PriceClass
         HttpVersion: http2and3
+        Aliases: !If
+          - HasDomain
+          - !Split [',', !Ref DomainNames]
+          - !Ref 'AWS::NoValue'
+        ViewerCertificate: !If
+          - HasDomain
+          - AcmCertificateArn: !Ref CertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
+
         Origins:
-          - Id: S3Origin
+          - Id: ShellOrigin
             DomainName: !GetAtt SiteBucket.RegionalDomainName
             OriginAccessControlId: !GetAtt OriginAccessControl.Id
             S3OriginConfig:
               OriginAccessIdentity: ''
+          - Id: SharedOrigin
+            DomainName: !GetAtt SharedBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+          - Id: AuthOrigin
+            DomainName: !GetAtt AuthBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+          - Id: CampaignsOrigin
+            DomainName: !GetAtt CampaignsBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+          - Id: DonationsOrigin
+            DomainName: !GetAtt DonationsBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+          - Id: AdminOrigin
+            DomainName: !GetAtt AdminBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+
+        # Cada microfrontend se sirve desde SU bucket. CloudFront reenvia la URI
+        # completa al origen, por eso cada bucket guarda sus objetos bajo la
+        # misma clave que la ruta publica (mf/<nombre>/...).
+        # CachingOptimized respeta el Cache-Control que pone el deploy: assets
+        # con hash = immutable; remoteEntry.js (sin hash) = no-cache.
+        CacheBehaviors:
+          - PathPattern: 'mf/shared/*'
+            TargetOriginId: SharedOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            Compress: true
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          - PathPattern: 'mf/auth/*'
+            TargetOriginId: AuthOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            Compress: true
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          - PathPattern: 'mf/campaigns/*'
+            TargetOriginId: CampaignsOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            Compress: true
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          - PathPattern: 'mf/donations/*'
+            TargetOriginId: DonationsOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            Compress: true
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          - PathPattern: 'mf/admin/*'
+            TargetOriginId: AdminOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            Compress: true
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+
+        # Todo lo demas (el shell y sus assets) sale del bucket del host.
         DefaultCacheBehavior:
-          TargetOriginId: S3Origin
+          TargetOriginId: ShellOrigin
           ViewerProtocolPolicy: redirect-to-https
           Compress: true
           # CachingOptimized (policy administrada por AWS).
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+
         # Fallback de SPA: cualquier ruta inexistente sirve index.html con 200,
         # para que React Router resuelva el enrutado en el cliente.
         CustomErrorResponses:
@@ -71,7 +246,7 @@ Resources:
             ResponsePagePath: /index.html
             ErrorCachingMinTTL: 0
 
-  # Politica que autoriza SOLO a esta distribucion de CloudFront a leer el bucket.
+  # Politicas: cada bucket autoriza SOLO a esta distribucion a leerlo.
   SiteBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -89,13 +264,106 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution.Id}'
 
+  SharedBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SharedBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${SharedBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution.Id}'
+
+  AuthBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AuthBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${AuthBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution.Id}'
+
+  CampaignsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CampaignsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${CampaignsBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution.Id}'
+
+  DonationsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DonationsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${DonationsBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution.Id}'
+
+  AdminBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AdminBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${AdminBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution.Id}'
+
 Outputs:
   BucketName:
-    Description: Nombre del bucket S3 donde se sincroniza el build (dist/).
+    Description: Bucket del shell (host). Se sincroniza con packages/mf-shell/dist.
     Value: !Ref SiteBucket
   DistributionId:
     Description: ID de la distribucion CloudFront (para invalidaciones).
     Value: !Ref Distribution
   DistributionDomainName:
-    Description: URL publica del frontend.
+    Description: Dominio de CloudFront (destino del CNAME de tu dominio).
     Value: !GetAtt Distribution.DomainName
+  SiteUrl:
+    Description: URL publica del frontend.
+    Value: !If
+      - HasDomain
+      - !Sub
+        - 'https://${First}'
+        - First: !Select [0, !Split [',', !Ref DomainNames]]
+      - !Sub 'https://${Distribution.DomainName}'

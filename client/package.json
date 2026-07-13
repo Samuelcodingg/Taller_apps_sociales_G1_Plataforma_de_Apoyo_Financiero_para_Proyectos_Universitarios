@@ -1,16 +1,15 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "sembradora-client",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "dev": "concurrently -k -n shared,auth,campaigns,donations,admin,shell -c magenta,green,blue,yellow,red,cyan \"npm -w mf-shared run dev\" \"npm -w mf-auth run dev\" \"npm -w mf-campaigns run dev\" \"npm -w mf-donations run dev\" \"npm -w mf-admin run dev\" \"npm -w mf-shell run dev\"",
+    "dev:shell": "npm -w mf-shell run dev",
+    "build": "npm -w mf-shared run build && concurrently -n auth,campaigns,donations,admin \"npm -w mf-auth run build\" \"npm -w mf-campaigns run build\" \"npm -w mf-donations run build\" \"npm -w mf-admin run build\" && npm -w mf-shell run build",
+    "preview": "concurrently -k -n shared,auth,campaigns,donations,admin,shell \"npm -w mf-shared run preview\" \"npm -w mf-auth run preview\" \"npm -w mf-campaigns run preview\" \"npm -w mf-donations run preview\" \"npm -w mf-admin run preview\" \"npm -w mf-shell run preview\"",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "npm -w mf-shared run test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -86,6 +85,11 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19",
-    "vitest": "^3.2.4"
-  }
+    "vitest": "^3.2.4",
+    "@originjs/vite-plugin-federation": "^1.4.1",
+    "concurrently": "^9.1.2"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

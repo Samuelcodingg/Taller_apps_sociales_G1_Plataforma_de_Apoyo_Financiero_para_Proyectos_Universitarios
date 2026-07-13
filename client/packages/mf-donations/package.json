@@ -1,0 +1,11 @@
+{
+  "name": "mf-donations",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build && concurrently -k \"vite build --watch\" \"vite preview --port 5004 --strictPort\"",
+    "build": "vite build",
+    "preview": "vite preview --port 5004 --strictPort"
+  }
+}
