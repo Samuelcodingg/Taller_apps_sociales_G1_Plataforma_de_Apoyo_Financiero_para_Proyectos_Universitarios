@@ -116,38 +116,6 @@ const Index = () => {
           </div>
         )}
       </section>
-
-      <section className="mt-12 grid gap-4 sm:grid-cols-3">
-        {[
-          {
-            t: "Crea tu campaña",
-            d: "Cuenta tu idea y define tu meta.",
-            to: "/crear",
-          },
-          {
-            t: "Verifica tu identidad",
-            d: "Sube tu carnet universitario.",
-            to: "/register/validation",
-          },
-          {
-            t: "Comparte y recauda",
-            d: "Difunde y recibe donaciones.",
-            to: "/explorar",
-          },
-        ].map((s, i) => (
-          <Link
-            to={s.to}
-            key={i}
-            className="rounded-2xl border bg-card p-6 hover:shadow-warm transition group"
-          >
-            <div className="h-10 w-10 rounded-xl bg-gradient-warm grid place-items-center text-primary-foreground font-semibold mb-3">
-              {i + 1}
-            </div>
-            <h3 className="font-semibold group-hover:text-primary">{s.t}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{s.d}</p>
-          </Link>
-        ))}
-      </section>
     </AppLayout>
   );
 };
